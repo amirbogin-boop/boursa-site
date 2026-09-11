@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>בורסה עולמית - מסחר חכם</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Rubik', sans-serif;
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(90deg, #1e2329 0%, #0d1117 100%);
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-wrap { display: flex; align-items: center; gap: 12px; }
+
+        .logo-img {
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+            object-fit: cover;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            border: 1px solid rgba(0, 212, 170, 0.3);
+        }
+
+        .logo {
+            font-size: 26px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #00d4aa, #70a1ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-buttons { display: flex; gap: 15px; }
+
+        .nav-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Rubik', sans-serif;
+            font-weight: 500;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: #fff;
+        }
+
+        .btn-primary { background: linear-gradient(90deg, #00d4aa, #00a4ef); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 212, 170, 0.4); }
+        .btn-secondary { background: #21262d; border: 1px solid #30363d; }
+        .btn-secondary:hover { background: #30363d; }
+
+        .hero {
+            padding: 80px 20px;
+            text-align: center;
+            background: radial-gradient(circle at center, #1e2329 0%, #0d1117 100%);
+        }
+
+        .hero-logo {
+            width: 240px;
+            max-width: 70%;
+            border-radius: 24px;
+            margin-bottom: 30px;
+            box-shadow: 0 15px 50px rgba(0, 212, 170, 0.25);
+            border: 2px solid rgba(0, 212, 170, 0.3);
+            animation: floatLogo 3s ease-in-out infinite;
+        }
+
+        @keyframes floatLogo {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #fff, #00d4aa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 20px;
+            color: #8b949e;
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+
+        .cta-buttons { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
+
+        .cta-btn {
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: all 0.3s;
+        }
+
+        .trading-section { padding: 80px 20px; background: #0d1117; }
+        .trading-container { max-width: 1200px; margin: 0 auto; }
+
+        .trading-interface {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 16px;
+            padding: 40px;
+            margin-top: 40px;
+        }
+
+        .balance-display {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: linear-gradient(90deg, #1e2329, #0d1117);
+            border-radius: 12px;
+        }
+
+        .balance-label { color: #8b949e; font-size: 16px; margin-bottom: 10px; }
+        .balance-amount { font-size: 48px; font-weight: 700; color: #00d4aa; }
+
+        .trade-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .trade-btn {
+            padding: 30px;
+            border: none;
+            border-radius: 12px;
+            font-size: 24px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Rubik', sans-serif;
+        }
+
+        .buy-btn { background: linear-gradient(90deg, #00d4aa, #00a4ef); color: #fff; }
+        .buy-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0, 212, 170, 0.4); }
+        .sell-btn { background: linear-gradient(90deg, #ff4757, #ff6348); color: #fff; }
+        .sell-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(255, 71, 87, 0.4); }
+
+        .assets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .asset-card {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .asset-card:hover { border-color: #00d4aa; transform: translateY(-3px); }
+        .asset-card.selected { border-color: #00d4aa; background: rgba(0, 212, 170, 0.1); }
+
+        .asset-symbol { font-size: 24px; margin-bottom: 10px; }
+        .asset-name { font-size: 16px; color: #fff; margin-bottom: 5px; }
+        .asset-price { font-size: 14px; color: #00d4aa; }
+
+        .quantity-selector { margin-top: 30px; text-align: center; }
+        .quantity-selector h3 { margin-bottom: 20px; color: #fff; }
+
+        .quantity-buttons { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
+
+        .qty-btn {
+            padding: 15px 30px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Rubik', sans-serif;
+        }
+
+        .qty-btn:hover { background: #30363d; border-color: #00d4aa; }
+        .qty-btn.selected { background: #00d4aa; border-color: #00d4aa; color: #0d1117; }
+
+        .confirm-trade { margin-top: 30px; text-align: center; }
+
+        .confirm-btn {
+            padding: 20px 60px;
+            font-size: 20px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.3s;
+            font-family: 'Rubik', sans-serif;
+        }
+
+        .confirm-buy { background: linear-gradient(90deg, #00d4aa, #00a4ef); color: #fff; }
+        .confirm-sell { background: linear-gradient(90deg, #ff4757, #ff6348); color: #fff; }
+        .confirm-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); }
+        .confirm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .trade-summary {
+            margin-top: 30px;
+            padding: 20px;
+            background: #0d1117;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .summary-row:last-child { border-bottom: none; font-weight: 700; font-size: 18px; }
+
+        .features { padding: 80px 20px; max-width: 1200px; margin: 0 auto; }
+        .section-title { text-align: center; font-size: 36px; margin-bottom: 50px; color: #fff; }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .feature-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 16px;
+            padding: 30px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .feature-card:hover { transform: translateY(-5px); border-color: #00d4aa; box-shadow: 0 10px 30px rgba(0, 212, 170, 0.2); }
+        .feature-icon { font-size: 48px; margin-bottom: 20px; }
+        .feature-card h3 { font-size: 24px; margin-bottom: 15px; color: #fff; }
+        .feature-card p { color: #8b949e; line-height: 1.6; }
+
+        .charts-section { padding: 80px 20px; background: #0d1117; }
+        .charts-container { max-width: 1200px; margin: 0 auto; }
+
+        .charts-intro {
+            text-align: center;
+            color: #8b949e;
+            margin-bottom: 10px;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+
+        .signal-legend {
+            text-align: center;
+            margin-top: 8px;
+            font-size: 14px;
+            color: #8b949e;
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .chart-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 16px;
+            padding: 30px;
+        }
+
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .chart-title { font-size: 24px; color: #fff; }
+
+        .live-indicator { display: flex; align-items: center; gap: 8px; color: #00d4aa; font-size: 14px; }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #00d4aa;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .range-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .range-btn {
+            padding: 6px 16px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 20px;
+            color: #8b949e;
+            font-size: 13px;
+            cursor: pointer;
+            font-family: 'Rubik', sans-serif;
+            transition: all 0.2s;
+        }
+
+        .range-btn:hover { border-color: #00d4aa; color: #fff; }
+
+        .range-btn.active {
+            background: #00d4aa;
+            color: #0d1117;
+            border-color: #00d4aa;
+            font-weight: 700;
+        }
+
+        .chart-wrapper { position: relative; height: 300px; }
+
+        .country-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        .country-chip {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #fff;
+            transition: all 0.3s;
+        }
+
+        .country-chip:hover { border-color: #00d4aa; transform: translateY(-2px); }
+        .country-chip b { color: #00d4aa; }
+
+        .chart-note {
+            margin-top: 15px;
+            padding: 12px 16px;
+            background: rgba(0, 212, 170, 0.08);
+            border: 1px dashed rgba(0, 212, 170, 0.4);
+            border-radius: 10px;
+            color: #8b949e;
+            font-size: 14px;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        .how-it-works { padding: 80px 20px; max-width: 1000px; margin: 0 auto; }
+        .steps { display: flex; flex-direction: column; gap: 30px; margin-top: 50px; }
+
+        .step {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+            background: #161b22;
+            padding: 30px;
+            border-radius: 16px;
+            border: 1px solid #30363d;
+        }
+
+        .step-number {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(90deg, #00d4aa, #00a4ef);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .step-content h3 { font-size: 24px; margin-bottom: 10px; color: #fff; }
+        .step-content p { color: #8b949e; line-height: 1.6; }
+
+        .commands { padding: 80px 20px; background: #161b22; }
+
+        .commands-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .command-card {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .command-card:hover { border-color: #00d4aa; transform: translateX(5px); }
+
+        .command-code {
+            background: #21262d;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            color: #00d4aa;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+
+        .command-desc { color: #8b949e; }
+
+        .copy-hint { margin-top: 10px; font-size: 12px; color: #00d4aa; opacity: 0; transition: opacity 0.3s; }
+        .command-card:hover .copy-hint { opacity: 1; }
+
+        .footer {
+            background: #0d1117;
+            padding: 40px 20px;
+            text-align: center;
+            border-top: 1px solid #30363d;
+        }
+
+        .footer p { color: #8b949e; }
+        .footer-logo { width: 60px; border-radius: 12px; margin-bottom: 15px; opacity: 0.8; }
+
+        .fab {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #00d4aa, #00a4ef);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            text-decoration: none;
+            box-shadow: 0 10px 30px rgba(0, 212, 170, 0.4);
+            z-index: 1500;
+            transition: transform 0.3s;
+        }
+
+        .fab:hover { transform: scale(1.15); }
+
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(150px);
+            background: #00d4aa;
+            color: #0d1117;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-weight: 700;
+            box-shadow: 0 10px 30px rgba(0, 212, 170, 0.4);
+            transition: transform 0.4s;
+            z-index: 2000;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        #toast.show { transform: translateX(-50%) translateY(0); }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 32px; }
+            .chart-grid { grid-template-columns: 1fr; }
+            .trade-buttons { grid-template-columns: 1fr; }
+            .nav-buttons { display: none; }
+            .hero-logo { width: 180px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-wrap">
+                <img src="logo.png" alt="לוגו בורסה עולמית" class="logo-img">
+                <div class="logo">בורסה עולמית</div>
+            </div>
+            <nav class="nav-buttons">
+                <a href="#trading" class="nav-btn btn-primary">מסחר עכשיו 🛒</a>
+                <a href="#charts" class="nav-btn btn-secondary">גרפים חיים</a>
+                <a href="#features" class="nav-btn btn-secondary">פיצ'רים</a>
+                <a href="#how-it-works" class="nav-btn btn-secondary">איך זה עובד</a>
+                <a href="https://t.me/boursa482555_bot" target="_blank" class="nav-btn btn-secondary">פתח בטלגרם</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <img src="logo.png" alt="בורסה - הלוגו הרשמי" class="hero-logo">
+        <h1>ללמוד להשקיע בבורסה וקריפטו - בחינם!</h1>
+        <p>בוט טלגרם חכם שמלמד אותך איך לסחור נכון, מגן עליך מהונאות, ונותן לך כלים להצלחה בשוק ההון</p>
+        <div class="cta-buttons">
+            <a href="#trading" class="cta-btn btn-primary">התחל לסחור עכשיו 💰</a>
+            <a href="https://t.me/boursa482555_bot" target="_blank" class="cta-btn btn-secondary">פתח את הבוט 🤖</a>
+            <a href="#how-it-works" class="cta-btn btn-secondary">איך זה עובד? 📚</a>
+        </div>
+    </section>
+
+    <!-- Trading Interface -->
+    <section class="trading-section" id="trading">
+        <div class="trading-container">
+            <h2 class="section-title">ממשק מסחר אינטראקטיבי 🛒</h2>
+            <div class="trading-interface">
+                <div class="balance-display">
+                    <div class="balance-label">💰 היתרה שלך</div>
+                    <div class="balance-amount" id="balance">$10,000.00</div>
+                </div>
+
+                <div class="trade-buttons">
+                    <button class="trade-btn buy-btn" onclick="selectTradeType('buy')">🟢 קנייה (BUY)</button>
+                    <button class="trade-btn sell-btn" onclick="selectTradeType('sell')">🔴 מכירה (SELL)</button>
+                </div>
+
+                <div id="assetsSection" style="display: none;">
+                    <h3 style="text-align: center; margin-bottom: 20px; color: #fff;">בחר נכס:</h3>
+                    <div class="assets-grid" id="assetsGrid"></div>
+                </div>
+
+                <div id="quantitySection" style="display: none;">
+                    <div class="quantity-selector">
+                        <h3>בחר כמות:</h3>
+                        <div class="quantity-buttons">
+                            <button class="qty-btn" onclick="selectQuantity(1, this)">1</button>
+                            <button class="qty-btn" onclick="selectQuantity(5, this)">5</button>
+                            <button class="qty-btn" onclick="selectQuantity(10, this)">10</button>
+                            <button class="qty-btn" onclick="selectQuantity(50, this)">50</button>
+                            <button class="qty-btn" onclick="selectQuantity(100, this)">100</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tradeSummary" class="trade-summary" style="display: none;">
+                    <h3 style="margin-bottom: 20px; color: #fff;">סיכום עסקה:</h3>
+                    <div class="summary-row"><span>נכס:</span><span id="summaryAsset">-</span></div>
+                    <div class="summary-row"><span>כמות:</span><span id="summaryQuantity">-</span></div>
+                    <div class="summary-row"><span>מחיר ליחידה:</span><span id="summaryPrice">-</span></div>
+                    <div class="summary-row"><span>עמלה (0.1%):</span><span id="summaryFee">-</span></div>
+                    <div class="summary-row"><span>סה"כ:</span><span id="summaryTotal">-</span></div>
+                </div>
+
+                <div class="confirm-trade">
+                    <button class="confirm-btn" id="confirmBtn" onclick="confirmTrade()" disabled>אשר עסקה</button>
+                </div>
+
+                <div style="margin-top: 30px; text-align: center;">
+                    <button class="qty-btn" onclick="togglePortfolio()">📊 הצג את התיק שלי</button>
+                </div>
+
+                <div id="portfolioSection" class="trade-summary" style="display: none;">
+                    <h3 style="margin-bottom: 15px; color: #fff;">💼 התיק שלך:</h3>
+                    <div id="portfolioList"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Charts -->
+    <section class="charts-section" id="charts">
+        <div class="charts-container">
+            <h2 class="section-title">גרפים חיים מהשווקים 📊</h2>
+            <p class="charts-intro">💡 כולם מתחילים עם <b style="color:#00d4aa;">$10,000 וירטואליים</b>.<br>
+            בחרו טווח זמן בכל גרף כדי לראות את <b style="color:#00d4aa;">ההיסטוריה המלאה</b> ולדעת מתי לקנות ומתי למכור!</p>
+            <p class="signal-legend">🟢 מחיר מתחת לממוצע התקופה = הזדמנות קנייה פוטנציאלית &nbsp;•&nbsp; 🔴 מחיר מעל הממוצע = שקול מכירה &nbsp;•&nbsp; ⚪ באזור הממוצע</p>
+            <div class="chart-grid">
+                <!-- קריפטו -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3 class="chart-title">₿ קריפטו</h3>
+                        <div class="live-indicator"><div class="live-dot"></div><span>חי</span></div>
+                    </div>
+                    <div class="range-buttons">
+                        <button class="range-btn active" onclick="setRange('crypto','24h',this)">24 שעות</button>
+                        <button class="range-btn" onclick="setRange('crypto','1w',this)">שבוע</button>
+                        <button class="range-btn" onclick="setRange('crypto','1m',this)">חודש</button>
+                        <button class="range-btn" onclick="setRange('crypto','3m',this)">3 חודשים</button>
+                    </div>
+                    <div class="chart-wrapper"><canvas id="cryptoChart"></canvas></div>
+                    <div class="country-chips" id="chips-crypto"></div>
+                    <div class="chart-note">🪙 מטבעות דיגיטליים - התנודתיים ביותר בשוק. המחירים בדולרים. סיכון גבוה = פוטנציאל רווח גבוה!</div>
+                </div>
+                <!-- מניות -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3 class="chart-title">📈 מניות נאסד"ק</h3>
+                        <div class="live-indicator"><div class="live-dot"></div><span>חי</span></div>
+                    </div>
+                    <div class="range-buttons">
+                        <button class="range-btn active" onclick="setRange('stocks','24h',this)">24 שעות</button>
+                        <button class="range-btn" onclick="setRange('stocks','1w',this)">שבוע</button>
+                        <button class="range-btn" onclick="setRange('stocks','1m',this)">חודש</button>
+                        <button class="range-btn" onclick="setRange('stocks','3m',this)">3 חודשים</button>
+                    </div>
+                    <div class="chart-wrapper"><canvas id="stocksChart"></canvas></div>
+                    <div class="country-chips" id="chips-stocks"></div>
+                    <div class="chart-note">🏢 קניית מניה = הפיכת לבעלים קטן בחברה! אפל מוכרת אייפונים, גוגל מנוע חיפוש, טסלה מכוניות חשמליות.</div>
+                </div>
+                <!-- סחורות -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3 class="chart-title">💎 סחורות</h3>
+                        <div class="live-indicator"><div class="live-dot"></div><span>חי</span></div>
+                    </div>
+                    <div class="range-buttons">
+                        <button class="range-btn active" onclick="setRange('commodities','24h',this)">24 שעות</button>
+                        <button class="range-btn" onclick="setRange('commodities','1w',this)">שבוע</button>
+                        <button class="range-btn" onclick="setRange('commodities','1m',this)">חודש</button>
+                        <button class="range-btn" onclick="setRange('commodities','3m',this)">3 חודשים</button>
+                    </div>
+                    <div class="chart-wrapper"><canvas id="commoditiesChart"></canvas></div>
+                    <div class="country-chips" id="chips-commodities"></div>
+                    <div class="chart-note">🏦 משאבים פיזיים - ה"מקלט הבטוח" של המשקיעים. זהב עולה בדרך כלל כשיש משבר בעולם.</div>
+                </div>
+                <!-- מטבעות -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3 class="chart-title">💵 מטבעות</h3>
+                        <div class="live-indicator"><div class="live-dot"></div><span>חי</span></div>
+                    </div>
+                    <div class="range-buttons">
+                        <button class="range-btn active" onclick="setRange('currencies','24h',this)">24 שעות</button>
+                        <button class="range-btn" onclick="setRange('currencies','1w',this)">שבוע</button>
+                        <button class="range-btn" onclick="setRange('currencies','1m',this)">חודש</button>
+                        <button class="range-btn" onclick="setRange('currencies','3m',this)">3 חודשים</button>
+                    </div>
+                    <div class="chart-wrapper"><canvas id="currenciesChart"></canvas></div>
+                    <div class="country-chips" id="chips-currencies"></div>
+                    <div class="chart-note">💱 המספרים מראים כמה דולר אמריקאי שווה כל מטבע. לדוגמה: פאונד אחד = 1.27 דולר, שקל אחד = 0.27 דולר.</div>
+                </div>
+                <!-- מדינות -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3 class="chart-title">🌍 מדד מדינות</h3>
+                        <div class="live-indicator"><div class="live-dot"></div><span>חי</span></div>
+                    </div>
+                    <div class="range-buttons">
+                        <button class="range-btn active" onclick="setRange('countries','24h',this)">24 שעות</button>
+                        <button class="range-btn" onclick="setRange('countries','1w',this)">שבוע</button>
+                        <button class="range-btn" onclick="setRange('countries','1m',this)">חודש</button>
+                        <button class="range-btn" onclick="setRange('countries','3m',this)">3 חודשים</button>
+                    </div>
+                    <div class="chart-wrapper"><canvas id="countriesChart"></canvas></div>
+                    <div class="country-chips" id="chips-countries"></div>
+                    <div class="chart-note">🌐 מדד כלכלי של כל מדינה במטבע המקומי שלה: ארה"ב → דולר, ישראל → שקל, גרמניה → יורו, בריטניה → פאונד, יפן → ין.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features" id="features">
+        <h2 class="section-title">מה הבוט יודע לעשות?</h2>
+        <div class="features-grid">
+            <div class="feature-card" onclick="location.href='#charts'">
+                <div class="feature-icon">📈</div>
+                <h3>גרפים בזמן אמת</h3>
+                <p>עקוב אחרי מחירי מניות, קריפטו, מטבעות, סחורות ומדדי מדינות עם היסטוריה מלאה עד 3 חודשים</p>
+            </div>
+            <div class="feature-card" onclick="window.open('https://t.me/boursa482555_bot','_blank')">
+                <div class="feature-icon">📚</div>
+                <h3>למידה אינטראקטיבית</h3>
+                <p>ספרייה עשירה עם שיעורים מרמת מתחיל עד מתקדם, טריוויה ואתגרים שבועיים</p>
+            </div>
+            <div class="feature-card" onclick="window.open('https://t.me/boursa482555_bot','_blank')">
+                <div class="feature-icon">🛡️</div>
+                <h3>הגנה מהונאות</h3>
+                <p>למד לזהות הונאות כמו Pump & Dump, Rug Pull ופישינג לפני שתפסיד כסף</p>
+            </div>
+            <div class="feature-card" onclick="location.href='#trading'">
+                <div class="feature-icon">💰</div>
+                <h3>מסחר וירטואלי</h3>
+                <p>תרגל מסחר עם כסף וירטואלי - ללא סיכון! למד מטעויות בלי להפסיד כסף אמיתי</p>
+            </div>
+            <div class="feature-card" onclick="window.open('https://t.me/boursa482555_bot','_blank')">
+                <div class="feature-icon">🤖</div>
+                <h3>AI חכם</h3>
+                <p>שאל כל שאלה על בורסה וקריפטו וקבל תשובות מפורטות ומותאמות אישית</p>
+            </div>
+            <div class="feature-card" onclick="window.open('https://t.me/boursa482555_bot','_blank')">
+                <div class="feature-icon">🏆</div>
+                <h3>הישגים ותחרות</h3>
+                <p>צבור נקודות XP, עלה רמות, השג תעודות והתחרה בלוח תוצאות מול משתמשים אחרים</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works" id="how-it-works">
+        <h2 class="section-title">איך מתחילים? 🚀</h2>
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>היכנסו לטלגרם</h3>
+                    <p>פתחו את אפליקציית טלגרם וחפשו את הבוט שלנו או לחצו על הקישור ישירות</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>שלחו /start</h3>
+                    <p>לחצו על הכפתור "התחל" או שלחו את הפקודה <code>/start</code> והבוט יפתח בפניכם תפריט אינטראקטיבי</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>בדקו את ההיסטוריה</h3>
+                    <p>בחרו טווח זמן בגרפים וראו מתי המחיר היה זול (🟢) ומתי יקר (🔴)</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h3>תרגלו מסחר וירטואלי</h3>
+                    <p>קבלו $10,000 וירטואליים וקנו כשהמחיר 🟢 ומכרו כשהוא 🔴 - בלי סיכון!</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                    <h3>עלו רמות וצברו הישגים</h3>
+                    <p>ככל שתלמדו ותסחרו יותר, תצברו נקודות XP, תעלו רמות ותקבלו תעודות הישגים</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Commands -->
+    <section class="commands">
+        <h2 class="section-title">פקודות שימושיות 📝</h2>
+        <p style="text-align:center; color:#8b949e; margin-bottom:40px;">💡 לחצו על כל כרטיס כדי להעתיק את הפקודה ואז הדביקו אותה לבוט בטלגרם!</p>
+        <div class="commands-grid">
+            <div class="command-card" onclick="copyCommand('/start')">
+                <div class="command-code">/start</div>
+                <div class="command-desc">התחלת הבוט וקבלת תפריט ראשי</div>
+                <div class="copy-hint">📋 לחץ להעתקת הפקודה</div>
+            </div>
+            <div class="command-card" onclick="copyCommand('/crypto')">
+                <div class="command-code">/crypto</div>
+                <div class="command-desc">גרף קריפטו - ביטקוין ואיתריום</div>
+                <div class="copy-hint">📋 לחץ להעתקת הפקודה</div>
+            </div>
+            <div class="command-card" onclick="copyCommand('/stocks')">
+                <div class="command-code">/stocks</div>
+                <div class="command-desc">גרף מניות - אפל, גוגל, טסלה ועוד</div>
+                <div class="copy-hint">📋 לחץ להעתקת הפקודה</div>
+            </div>
+            <div class="command-card" onclick="copyCommand('/buy AAPL 10')">
+                <div class="command-code">/buy AAPL 10</div>
+                <div class="command-desc">קניית 10 מניות אפל</div>
+                <div class="copy-hint">📋 לחץ להעתקת הפקודה</div>
+            </div>
+            <div class="command-card" onclick="copyCommand('/word')">
+                <div class="command-code">/word</div>
+                <div class="command-desc">המילה הפיננסית של היום</div>
+                <div class="copy-hint">📋 לחץ להעתקת הפקודה</div>
+            </div>
+            <div class="command-card" onclick="copyCommand('/panic')">
+                <div class="command-code">/panic</div>
+                <div class="command-desc">בדיקת הונאה מהירה - 3 שאלות</div>
+                <div class="copy-hint">📋 לחץ להעתקת הפקודה</div>
+            </div>
+            <div class="command-card" onclick="copyCommand('/certificate')">
+                <div class="command-code">/certificate</div>
+                <div class="command-desc">הפקת תעודת הישגים אישית</div>
+                <div class="copy-hint">📋 לחץ להעתקת הפקודה</div>
+            </div>
+            <div class="command-card" onclick="copyCommand('/progress')">
+                <div class="command-code">/progress</div>
+                <div class="command-desc">גרף ההתקדמות האישית שלך</div>
+                <div class="copy-hint">📋 לחץ להעתקת הפקודה</div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <img src="logo.png" alt="לוגו" class="footer-logo">
+        <p>© 2026 בורסה עולמית | ללמוד להשקיע חכם 📊</p>
+        <p style="margin-top: 10px; font-size: 14px;">⚠️ זהו כלי לימודי בלבד - אין לראות בנתונים ייעוץ השקעות</p>
+    </footer>
+
+    <a href="https://t.me/boursa482555_bot" target="_blank" class="fab" title="פתח את הבוט בטלגרם">✈️</a>
+
+    <div id="toast"></div>
+
+    <script>
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2500);
+        }
+
+        function copyCommand(cmd) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(cmd).then(() => {
+                    showToast('📋 הפקודה הועתקה! עכשיו הדבק אותה לבוט בטלגרם');
+                }).catch(() => {
+                    showToast('📋 הפקודה שלך: ' + cmd);
+                });
+            } else {
+                showToast('📋 הפקודה שלך: ' + cmd);
+            }
+        }
+
+        // ===== Trading System =====
+        const assets = {
+            'BTC': { name: 'ביטקוין', symbol: '₿', price: 43500, color: '#f39c12' },
+            'ETH': { name: 'איתריום', symbol: 'Ξ', price: 2280, color: '#9b59b6' },
+            'AAPL': { name: 'אפל', symbol: '🍎', price: 195, color: '#a2aaad' },
+            'GOOGL': { name: 'גוגל', symbol: '🔍', price: 175, color: '#4285f4' },
+            'TSLA': { name: 'טסלה', symbol: '🚗', price: 240, color: '#cc0000' },
+            'AMZN': { name: 'אמזון', symbol: '📦', price: 185, color: '#ff9900' },
+            'MSFT': { name: 'מייקרוסופט', symbol: '🪟', price: 420, color: '#00a4ef' },
+            'META': { name: 'מטא', symbol: '👥', price: 505, color: '#1877f2' },
+            'NVDA': { name: 'אנבידיה', symbol: '🎮', price: 880, color: '#76b900' },
+            'GOLD': { name: 'זהב', symbol: '🥇', price: 2050, color: '#f1c40f' },
+            'USD': { name: 'דולר אמריקאי', symbol: '💵', price: 1.00, color: '#2ecc71' },
+            'EUR': { name: 'יורו', symbol: '💶', price: 1.08, color: '#3498db' },
+            'GBP': { name: 'פאונד', symbol: '💷', price: 1.27, color: '#9b59b6' },
+            'ILS': { name: 'שקל ישראלי', symbol: '₪', price: 0.27, color: '#e67e22' }
+        };
+
+        let balance = 10000;
+        let portfolio = {};
+        let selectedTradeType = null;
+        let selectedAsset = null;
+        let selectedQuantity = null;
+
+        function selectTradeType(type) {
+            selectedTradeType = type;
+            selectedAsset = null;
+            selectedQuantity = null;
+            document.getElementById('assetsSection').style.display = 'block';
+            document.getElementById('quantitySection').style.display = 'none';
+            document.getElementById('tradeSummary').style.display = 'none';
+            document.getElementById('confirmBtn').disabled = true;
+            renderAssets();
+            showToast(type === 'buy' ? '🟢 בחרת קנייה - עכשיו בחר נכס' : '🔴 בחרת מכירה - עכשיו בחר נכס');
+        }
+
+        function renderAssets() {
+            const grid = document.getElementById('assetsGrid');
+            grid.innerHTML = '';
+            Object.entries(assets).forEach(([code, data]) => {
+                const card = document.createElement('div');
+                card.className = 'asset-card';
+                card.onclick = function() { selectAsset(code, this); };
+                card.innerHTML = `
+                    <div class="asset-symbol">${data.symbol}</div>
+                    <div class="asset-name">${data.name}</div>
+                    <div class="asset-price">$${data.price.toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function selectAsset(code, element) {
+            selectedAsset = code;
+            selectedQuantity = null;
+            document.getElementById('quantitySection').style.display = 'block';
+            document.getElementById('tradeSummary').style.display = 'none';
+            document.getElementById('confirmBtn').disabled = true;
+            document.querySelectorAll('.asset-card').forEach(card => card.classList.remove('selected'));
+            element.classList.add('selected');
+            showToast(`${assets[code].symbol} בחרת ${assets[code].name} - עכשיו בחר כמות`);
+        }
+
+        function selectQuantity(qty, btn) {
+            selectedQuantity = qty;
+            document.querySelectorAll('.qty-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            updateTradeSummary();
+        }
+
+        function updateTradeSummary() {
+            if (!selectedAsset || !selectedQuantity) return;
+            const asset = assets[selectedAsset];
+            const cost = asset.price * selectedQuantity;
+            const fee = cost * 0.001;
+            const total = selectedTradeType === 'buy' ? cost + fee : cost - fee;
+            
+            document.getElementById('summaryAsset').textContent = `${asset.symbol} ${asset.name} (${selectedAsset})`;
+            document.getElementById('summaryQuantity').textContent = selectedQuantity;
+            document.getElementById('summaryPrice').textContent = `$${asset.price.toLocaleString(undefined, {maximumFractionDigits: 2})}`;
+            document.getElementById('summaryFee').textContent = `$${fee.toFixed(2)}`;
+            document.getElementById('summaryTotal').textContent = `$${total.toFixed(2)}`;
+            document.getElementById('tradeSummary').style.display = 'block';
+            document.getElementById('confirmBtn').disabled = false;
+            document.getElementById('confirmBtn').className = `confirm-btn confirm-${selectedTradeType}`;
+            document.getElementById('confirmBtn').textContent = selectedTradeType === 'buy' ? '✅ אשר קנייה' : '✅ אשר מכירה';
+        }
+
+        function confirmTrade() {
+            if (!selectedAsset || !selectedQuantity) return;
+            const asset = assets[selectedAsset];
+            const cost = asset.price * selectedQuantity;
+            const fee = cost * 0.001;
+            
+            if (selectedTradeType === 'buy') {
+                const total = cost + fee;
+                if (total > balance) {
+                    showToast('❌ אין מספיק כסף לביצוע העסקה!');
+                    return;
+                }
+                balance -= total;
+                portfolio[selectedAsset] = (portfolio[selectedAsset] || 0) + selectedQuantity;
+                showToast(`✅ קנייה בוצעה! ${asset.symbol} ${asset.name} x${selectedQuantity}`);
+            } else {
+                if (!portfolio[selectedAsset] || portfolio[selectedAsset] < selectedQuantity) {
+                    showToast('❌ אין לך מספיק נכסים למכירה!');
+                    return;
+                }
+                const total = cost - fee;
+                balance += total;
+                portfolio[selectedAsset] -= selectedQuantity;
+                if (portfolio[selectedAsset] <= 0) delete portfolio[selectedAsset];
+                showToast(`✅ מכירה בוצעה! ${asset.symbol} ${asset.name} x${selectedQuantity}`);
+            }
+            
+            document.getElementById('balance').textContent = `$${balance.toFixed(2)}`;
+            selectedAsset = null;
+            selectedQuantity = null;
+            document.getElementById('quantitySection').style.display = 'none';
+            document.getElementById('tradeSummary').style.display = 'none';
+            document.getElementById('confirmBtn').disabled = true;
+            if (document.getElementById('portfolioSection').style.display === 'block') {
+                renderPortfolio();
+            }
+        }
+
+        function togglePortfolio() {
+            const sec = document.getElementById('portfolioSection');
+            if (sec.style.display === 'none') {
+                renderPortfolio();
+                sec.style.display = 'block';
+                showToast('💼 התיק שלך נפתח למטה');
+            } else {
+                sec.style.display = 'none';
+            }
+        }
+
+        function renderPortfolio() {
+            const list = document.getElementById('portfolioList');
+            const keys = Object.keys(portfolio);
+            if (keys.length === 0) {
+                list.innerHTML = '<p style="color:#8b949e; padding: 15px;">התיק ריק - בצע קנייה ראשונה! 🛒</p>';
+                return;
+            }
+            let html = '';
+            let total = 0;
+            keys.forEach(code => {
+                const qty = portfolio[code];
+                const val = assets[code].price * qty;
+                total += val;
+                html += `<div class="summary-row"><span>${assets[code].symbol} ${assets[code].name} (${code}) x${qty}</span><span>$${val.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>`;
+            });
+            html += `<div class="summary-row"><span>💰 שווי התיק:</span><span>$${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>`;
+            html += `<div class="summary-row"><span>💵 יתרת מזומן:</span><span>$${balance.toFixed(2)}</span></div>`;
+            list.innerHTML = html;
+        }
+
+        // ===== היסטוריה וגרפים =====
+        Chart.defaults.color = '#8b949e';
+        Chart.defaults.borderColor = '#30363d';
+
+        function genHistory(base, vol, n) {
+            const arr = [base];
+            for (let i = 1; i < n; i++) {
+                const ch = (Math.random() - 0.5) * 2 * vol;
+                arr.push(Math.max(arr[i-1] * (1 + ch), base * 0.4));
+            }
+            return arr;
+        }
+
+        function mean(a) { return a.reduce((s, x) => s + x, 0) / a.length; }
+
+        function dateLabels(n) {
+            const out = [];
+            for (let i = n - 1; i >= 0; i--) {
+                const d = new Date(Date.now() - i * 86400000);
+                out.push(d.getDate() + '/' + (d.getMonth() + 1));
+            }
+            return out;
+        }
+
+        const HOURS7 = ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'];
+        const RANGE_POINTS = { '24h': 7, '1w': 7, '1m': 30, '3m': 90 };
+
+        const GROUPS = {
+            crypto: { range: '24h', assets: [
+                { id: 'BTC', label: '₿ ביטקוין', base: 43500, vol: 0.02, fmt: 'usd-int', color: '#f39c12' },
+                { id: 'ETH', label: 'Ξ איתריום', base: 2280, vol: 0.025, fmt: 'usd-int', color: '#9b59b6' }
+            ]},
+            stocks: { range: '24h', assets: [
+                { id: 'AAPL', label: '🍎 אפל', base: 195, vol: 0.012, fmt: 'usd-2', color: '#a2aaad' },
+                { id: 'GOOGL', label: '🔍 גוגל', base: 175, vol: 0.012, fmt: 'usd-2', color: '#4285f4' },
+                { id: 'TSLA', label: '🚗 טסלה', base: 240, vol: 0.02, fmt: 'usd-2', color: '#cc0000' }
+            ]},
+            commodities: { range: '24h', assets: [
+                { id: 'GOLD', label: '🥇 זהב', base: 2050, vol: 0.008, fmt: 'usd-2', color: '#f1c40f' },
+                { id: 'DIAMOND', label: '💎 יהלום', base: 5000, vol: 0.01, fmt: 'usd-2', color: '#b9f2ff' },
+                { id: 'OIL', label: '🛢️ נפט', base: 80, vol: 0.012, fmt: 'usd-2', color: '#95a5a6' }
+            ]},
+            currencies: { range: '24h', assets: [
+                { id: 'USD', label: '💵 דולר (USD)', base: 1.00, vol: 0.0, fmt: 'num-2', color: '#2ecc71' },
+                { id: 'EUR', label: '💶 יורו (EUR)', base: 1.08, vol: 0.004, fmt: 'num-2', color: '#3498db' },
+                { id: 'GBP', label: '💷 פאונד (GBP)', base: 1.27, vol: 0.004, fmt: 'num-2', color: '#9b59b6' },
+                { id: 'ILS', label: '₪ שקל (ILS)', base: 0.27, vol: 0.004, fmt: 'num-2', color: '#e67e22' }
+            ]},
+            countries: { range: '24h', assets: [
+                { id: 'USA', label: '🇺 ארה"ב (דולר $)', base: 100, vol: 0.005, fmt: 'num-2', color: '#00d4aa' },
+                { id: 'ISR', label: '🇮 ישראל (שקל ₪)', base: 85.5, vol: 0.005, fmt: 'num-2', color: '#ff4757' },
+                { id: 'DEU', label: '🇩🇪 גרמניה (יורו €)', base: 91.3, vol: 0.005, fmt: 'num-2', color: '#70a1ff' },
+                { id: 'GBR', label: '🇬 בריטניה (פאונד £)', base: 88.7, vol: 0.005, fmt: 'num-2', color: '#5352ed' },
+                { id: 'JPN', label: '🇯🇵 יפן (ין ¥)', base: 92.4, vol: 0.005, fmt: 'num-2', color: '#7bed9f' }
+            ]}
+        };
+
+        // יצירת היסטוריה לכל נכס
+        Object.values(GROUPS).forEach(g => {
+            g.assets.forEach(a => {
+                a.daily = genHistory(a.base, a.vol, 90);
+                a.intraday = genHistory(a.base, a.vol * 0.3, 7);
+                a.cur = a.daily[a.daily.length - 1];
+                a.intraday[6] = a.cur;
+            });
+        });
+
+        function fmtVal(a) {
+            if (a.fmt === 'usd-int') return '$' + Math.round(a.cur).toLocaleString();
+            if (a.fmt === 'usd-2') return '$' + a.cur.toFixed(2);
+            return a.cur.toFixed(2);
+        }
+
+        function makeChart(canvasId, groupKey) {
+            const g = GROUPS[groupKey];
+            const ch = new Chart(document.getElementById(canvasId).getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: HOURS7.slice(),
+                    datasets: g.assets.map(a => ({
+                        label: a.label,
+                        data: a.intraday.slice(),
+                        borderColor: a.color,
+                        tension: 0.4,
+                        fill: false,
+                        pointRadius: 2
+                    }))
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } },
+                    scales: { y: { beginAtZero: false } }
+                }
+            });
+            g.chart = ch;
+        }
+
+        makeChart('cryptoChart', 'crypto');
+        makeChart('stocksChart', 'stocks');
+        makeChart('commoditiesChart', 'commodities');
+        makeChart('currenciesChart', 'currencies');
+        makeChart('countriesChart', 'countries');
+
+        function applyData(groupKey) {
+            const g = GROUPS[groupKey];
+            const n = RANGE_POINTS[g.range];
+            const labels = g.range === '24h' ? HOURS7.slice() : dateLabels(n);
+            g.chart.data.labels = labels;
+            g.assets.forEach((a, i) => {
+                g.chart.data.datasets[i].data = g.range === '24h' ? a.intraday.slice() : a.daily.slice(-n);
+            });
+            g.chart.update('none');
+            renderChips(groupKey);
+        }
+
+        function setRange(groupKey, range, btn) {
+            GROUPS[groupKey].range = range;
+            btn.parentElement.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            applyData(groupKey);
+        }
+
+        function renderChips(groupKey) {
+            const g = GROUPS[groupKey];
+            const n = RANGE_POINTS[g.range];
+            const el = document.getElementById('chips-' + groupKey);
+            el.innerHTML = g.assets.map(a => {
+                const displayed = g.range === '24h' ? a.intraday : a.daily.slice(-n);
+                const avg = mean(displayed);
+                const sig = a.cur < avg * 0.99 ? '🟢' : a.cur > avg * 1.01 ? '🔴' : '⚪';
+                return `<span class="country-chip">${a.label}: <b>${fmtVal(a)}</b> ${sig}</span>`;
+            }).join('');
+        }
+
+        // עדכון חי כל 5 שניות
+        setInterval(() => {
+            Object.entries(GROUPS).forEach(([key, g]) => {
+                g.assets.forEach(a => {
+                    if (a.vol > 0) {
+                        a.cur = Math.max(a.cur * (1 + (Math.random() - 0.5) * 2 * a.vol * 0.3), a.base * 0.4);
+                    }
+                    a.intraday[6] = a.cur;
+                    a.daily[89] = a.cur;
+                    if (assets[a.id]) assets[a.id].price = a.cur;
+                });
+                applyData(key);
+            });
+        }, 5000);
+
+        // רינדור ראשוני
+        Object.keys(GROUPS).forEach(applyData);
+
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
