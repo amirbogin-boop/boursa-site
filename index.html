@@ -60,7 +60,7 @@ body.locked > *:not(.auth-overlay):not(#toast){display:none!important}#authOverl
 /* ===== CORE ===== */
 function showToast(m,e){var t=document.getElementById('toast');t.textContent=m;t.className=e?'show error':'show';setTimeout(function(){t.className='';},3500);}
 var USERS_KEY='boursa_users',SESSION_KEY='boursa_session',MIN_AGE=14;
-var DATA_KEY='boursa_data_guest',currentUserName='אורח',loggedIn=false;
+var DATA_KEY='boursa_data_guest', currentUserName='אורח', currentUserEmail='', loggedIn=false;
 function getUsers(){try{return JSON.parse(localStorage.getItem(USERS_KEY))||{};}catch(e){return {};}}
 function saveUsers(u){try{localStorage.setItem(USERS_KEY,JSON.stringify(u));}catch(e){}}
 function simpleHash(s){var h=0;for(var i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0;}return 'h'+h;}
@@ -88,10 +88,83 @@ var u=getUsers();var isNew=!u[em];if(isNew){u[em]={name:nm,pass:simpleHash(curre
 closeProvider();startSession(em,nm,currentProvider);addHistory('system',(isNew?'🎉 נרשמת דרך ':'🔑 התחברת דרך ')+currentProvider+'!');return false;}
 function startSession(em,n,prov){try{localStorage.setItem(SESSION_KEY,JSON.stringify({email:em,name:n,provider:prov||'email'}));}catch(e){}
 DATA_KEY='boursa_data_'+em;currentUserName=n;loggedIn=true;loadUserData();updateStreak();
+currentUserEmail=em;
 document.getElementById('authOverlay').classList.add('hidden');document.getElementById('providerOverlay').classList.add('hidden');
 document.getElementById('userChip').classList.remove('hidden');document.getElementById('userName').textContent='👋 '+n;
 updateBalanceDisplay();renderGrowth();renderCommunity();renderLearn();showToast('👋 שלום '+n+'!');}
-function doLogout(){try{localStorage.removeItem(SESSION_KEY);}catch(e){}location.reload();}
+// ===== פונקציות מתוקנות למשתמש =====
+function loginUser(email, name) {
+    var allUsers = users();
+    
+    if (!allUsers[email]) {
+        allUsers[email] = {
+            name: name || email.split('@')[0],
+            email: email,
+            created: Date.now(),
+            xp: 0,
+            portfolio: {},
+            watchlist: []
+        };
+        saveU(allUsers);
+    }
+    
+    currentUserName = allUsers[email].name;
+    currentUserEmail = email;
+    localStorage.setItem('boursa_current_user', email);
+    
+    updateHeaderDisplay();
+    loadUserData(email);
+    
+    showToast('👋 ברוך שובך, ' + currentUserName + '!');
+}
+
+function updateHeaderDisplay() {
+    var nameElements = document.querySelectorAll('.user-name');
+    nameElements.forEach(function(el) {
+        el.textContent = currentUserName;
+    });
+    
+    var emailElements = document.querySelectorAll('.user-email');
+    emailElements.forEach(function(el) {
+        el.textContent = currentUserEmail;
+    });
+    
+    var headerBox = document.getElementById('headerUserBox');
+    if (headerBox && currentUserName) {
+        headerBox.classList.remove('hidden');
+    }
+}
+
+function logoutUser() {
+    try {
+        localStorage.removeItem('boursa_current_user');
+        localStorage.removeItem('boursa_session');
+    } catch(e) {}
+    
+    currentUserName = '';
+    currentUserEmail = '';
+    
+    var headerBox = document.getElementById('headerUserBox');
+    if (headerBox) {
+        headerBox.classList.add('hidden');
+    }
+    
+    location.reload();
+}
+
+function loadUserData(email) {
+    var allUsers = users();
+    var userData = allUsers[email];
+    
+    if (userData) {
+        if (userData.xp !== undefined) window.xpBonus = userData.xp;
+        if (userData.portfolio) window.portfolio = userData.portfolio;
+        if (userData.watchlist) window.watchlist = userData.watchlist;
+    }
+}
+
+// הפונקציה המקורית doLogout - קוראת ל-llogoutUser החדשה
+function doLogout(){ logoutUser(); }
 function initAuth(){try{var s=localStorage.getItem(SESSION_KEY);if(s){var d=JSON.parse(s);if(d&&d.email){startSession(d.email,d.name||'משתמש',d.provider);return;}}}catch(e){}}
 var historyArr=[],xpBonus=0,claimedArr=[],goal=null,goalDone=false,streak=null,lessonsDone=[],quizCorrect=0,quizTotal=0;
 function loadData(){try{var d=localStorage.getItem(DATA_KEY);if(d)return JSON.parse(d);}catch(e){}return{balance:10000,portfolio:{},initialBalance:10000,history:[],xpBonus:0,claimed:[],goal:null,goalDone:false,streak:null,lessonsDone:[],quizCorrect:0,quizTotal:0};}
@@ -390,7 +463,6 @@ $('b2main').innerHTML=h;}
 var nav=document.querySelector('nav');
 if(nav){var b=document.createElement('button');b.className='nav-btn btn-primary';b.textContent='🏠 Dashboard';b.onclick=function(){b2Open();};nav.insertBefore(b,nav.firstChild);}
 if(typeof window.startSession==='function'){var os=window.startSession;window.startSession=function(){var r=os.apply(this,arguments);setTimeout(function(){b2Open();},400);return r;};}
-setTimeout(function(){ b2Open(); }, 1500);
 buildNav();
 console.log('%c🌎 BOURSA 2.0 Dashboard loaded','background:#00a4ef;color:#fff;padding:4px 8px;border-radius:4px');
 })();
@@ -455,168 +527,7 @@ if (f) f.focus();
 })();
 </script>
 <!-- ===================================================== -->
-<!-- 🌎 BOURSA 2.0 — UPGRADE PACK (Dashboard/Markets/Stock/AI/Academy/Challenges) -->
-<!-- להדביק לפני </body> בקובץ index.html הקיים שלך        -->
-<!-- ===================================================== -->
-<style>
-#b2app{position:fixed;inset:0;z-index:2600;background:#0a0e1a;display:flex;overflow:hidden}
-#b2app.hidden{display:none}
-.b2side{width:230px;flex-shrink:0;background:rgba(13,17,23,.94);border-left:1px solid rgba(48,54,61,.6);padding:18px 12px;display:flex;flex-direction:column;gap:6px;overflow-y:auto}
-.b2logo{font-size:22px;font-weight:800;background:linear-gradient(90deg,#00d4aa,#70a1ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px;padding:0 8px}
-.b2nav{display:flex;align-items:center;gap:10px;padding:11px 12px;border:none;border-radius:10px;background:transparent;color:#8b949e;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;text-align:right;transition:.2s}
-.b2nav:hover{background:rgba(0,212,170,.08);color:#fff}
-.b2nav.on{background:linear-gradient(135deg,#00d4aa,#00a4ef);color:#071310}
-.b2main{flex:1;overflow-y:auto;padding:28px 32px}
-.b2grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
-.b2card{background:rgba(22,27,34,.72);border:1px solid rgba(48,54,61,.6);border-radius:16px;padding:20px}
-.b2card h4{font-size:13px;color:#8b949e;margin-bottom:10px;font-weight:600;letter-spacing:.5px}
-.b2big{font-size:34px;font-weight:800;font-family:'Space Grotesk',monospace}
-.b2up{color:#00d4aa}.b2dn{color:#ff4757}
-.b2row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(48,54,61,.4);font-size:14px;gap:10px}
-.b2row:last-child{border:none}
-.b2chip{display:inline-flex;align-items:center;gap:6px;background:rgba(13,17,23,.6);border:1px solid rgba(48,54,61,.6);border-radius:20px;padding:6px 12px;font-size:12px;margin:3px;cursor:pointer}
-.b2btn{padding:9px 18px;border:none;border-radius:9px;background:linear-gradient(135deg,#00d4aa,#00a4ef);color:#071310;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px}
-.b2btn.ghost{background:rgba(33,38,45,.6);color:#fff;border:1px solid rgba(48,54,61,.6)}
-.b2btn.danger{background:linear-gradient(135deg,#ff4757,#ff6348);color:#fff}
-#b2stock{position:fixed;inset:0;z-index:2700;background:rgba(5,8,14,.82);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px}
-#b2stock.hidden{display:none}
-.b2sbox{width:min(860px,96vw);max-height:92vh;overflow-y:auto;background:#161b22;border:1px solid rgba(48,54,61,.6);border-radius:20px;padding:26px}
-.b2stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin:14px 0}
-.b2stat{background:rgba(13,17,23,.6);border:1px solid rgba(48,54,61,.6);border-radius:10px;padding:10px;text-align:center}
-.b2stat b{display:block;font-size:15px;color:#00d4aa}
-.b2stat span{font-size:11px;color:#8b949e}
-.b2lv{border:1px solid rgba(0,212,170,.35);border-radius:14px;padding:16px;margin-bottom:14px;background:rgba(0,212,170,.04)}
-.b2lv h5{color:#00d4aa;margin-bottom:10px;font-size:15px}
-.b2les{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:8px;font-size:13px;margin-bottom:5px;background:rgba(13,17,23,.5)}
-@media(max-width:800px){.b2side{width:60px}.b2nav span.lbl{display:none}.b2main{padding:16px}}
-</style>
-
-<script>
-(function(){
-if(window.__B2)return;window.__B2=1;
-var $=function(id){return document.getElementById(id);};
-function ls(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
-function ss(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
-function hash(s){var h=0;for(var i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0;}return Math.abs(h);}
-function findGA(code){var f=null;Object.keys(GROUPS).forEach(function(k){GROUPS[k].assets.forEach(function(a){if(a.id===code)f=a;if((COUNTRY_TRADE_MAP||{})[a.id]===code)f=a;});});return f;}
-function chg(code){var a=findGA(code);if(!a)return 0;var prev=a.daily[a.daily.length-2]||a.cur;return prev?((a.cur-prev)/prev)*100:0;}
-function fmtP(x){return '$'+x.toLocaleString(undefined,{maximumFractionDigits:2});}
-function fmtC(x){return (x>=0?'+':'')+x.toFixed(2)+'%';}
-function cls(x){return x>=0?'b2up':'b2dn';}
-function fmtCap(x){if(x>=1e12)return '$'+(x/1e12).toFixed(2)+'T';if(x>=1e9)return '$'+(x/1e9).toFixed(2)+'B';return '$'+(x/1e6).toFixed(0)+'M';}
-function getW(){return ls('boursa_watch',[]);}
-function topMovers(n){return Object.keys(assets).sort(function(a,b){return chg(b)-chg(a);}).slice(0,n);}
-
-/* ===== DOM ===== */
-var app=document.createElement('div');app.id='b2app';app.className='hidden';
-app.innerHTML='<aside class="b2side"><div class="b2logo">BOURSA 🌎</div><div id="b2nav"></div></aside><main class="b2main" id="b2main"></main>';
-document.body.appendChild(app);
-var modal=document.createElement('div');modal.id='b2stock';modal.className='hidden';
-modal.innerHTML='<div class="b2sbox" id="b2sbox"></div>';
-document.body.appendChild(modal);
-modal.onclick=function(e){if(e.target===modal)closeStock();};
-
-var NAV=[['dash','🏠','Dashboard'],['markets','🌍','Markets'],['watch','⭐','Watchlist'],['academy','🎓','Academy'],['chall','🔥','Challenges'],['lead','🏆','Leaderboard'],['news','📰','News'],['profile','👤','Profile'],['site','🌐','האתר המלא'],['close','✖','סגור']];
-var curView='dash';
-function buildNav(){$('b2nav').innerHTML=NAV.map(function(n){return '<button class="b2nav" data-v="'+n[0]+'" onclick="b2Nav(\''+n[0]+'\')">'+n[1]+' <span class="lbl">'+n[2]+'</span></button>';}).join('');}
-function markNav(){document.querySelectorAll('.b2nav').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-v')===curView);});}
-window.b2Nav=function(v){if(v==='close'){b2Close();return;}if(v==='site'){b2Close();window.scrollTo(0,0);return;}renderView(v);};
-window.b2Open=function(){app.classList.remove('hidden');renderView(curView);};
-window.b2Close=function(){app.classList.add('hidden');modal.classList.add('hidden');};
-window.b2GoTrade=function(){b2Close();var el=document.querySelector('#trading');if(el)el.scrollIntoView({behavior:'smooth'});};
-function renderView(v){curView=v;markNav();
-if(v==='dash')renderDash();else if(v==='markets')renderMarkets();else if(v==='watch')renderWatch();else if(v==='academy')renderAcademy();else if(v==='chall')renderChall();else if(v==='lead')renderLead();else if(v==='news')renderNews();else if(v==='profile')renderProfile();}
-
-/* ===== מסחר ישיר + מעקב ===== */
-window.b2Trade=function(code,side){var a=assets[code];var q=+($('b2qty')?$('b2qty').value:0);if(!a||!q||q<=0){showToast('❌ כמות לא תקינה',true);return;}
-var cost=a.price*q,fee=cost*0.001;
-if(side==='buy'){var tot=cost+fee;if(tot>balance){showToast('❌ אין כסף!',true);return;}balance-=tot;portfolio[code]=(portfolio[code]||0)+q;addHistory('buy','קנייה: '+a.symbol+' x'+q,{code:code,qty:q,price:a.price,total:tot});}
-else{if((portfolio[code]||0)<q){showToast('❌ אין נכסים!',true);return;}var t2=cost-fee;balance+=t2;portfolio[code]-=q;if(portfolio[code]<=0)delete portfolio[code];addHistory('sell','מכירה: '+a.symbol+' x'+q,{code:code,qty:q,price:a.price,total:t2});}
-saveData();updateBalanceDisplay();renderGrowth();renderCommunity();showToast(side==='buy'?'✅ קנייה בוצעה!':'✅ מכירה בוצעה!');renderView(curView);};
-window.b2ToggleWatch=function(code){var w=getW();if(w.indexOf(code)<0){w.push(code);showToast('⭐ נוסף למעקב!');}else{w=w.filter(function(c){return c!==code;});showToast('הוסר מהמעקב');}ss('boursa_watch',w);renderView(curView);if(!modal.classList.contains('hidden'))openStock(code);};
-
-/* ===== עמוד מניה ===== */
-var b2Chart=null;
-window.openStock=function(code){var a=assets[code];if(!a)return;var ga=findGA(code);var h=hash(code);
-var pe=15+h%20,eps=a.price/pe,cap=a.price*(1e9+h%9e8),div=(h%4===0)?(0.5+(h%30)/10):0;
-var hi=ga?Math.max.apply(null,ga.daily):a.price*1.2,lo=ga?Math.min.apply(null,ga.daily):a.price*0.8;
-var c=chg(code);
-var box='<div style="display:flex;justify-content:space-between;align-items:center"><div><h2>'+a.symbol+' '+a.name+' <span style="color:#8b949e;font-size:13px">'+code+'</span></h2><div style="font-size:30px;font-weight:800;font-family:Space Grotesk">'+fmtP(a.price)+' <span class="'+cls(c)+'" style="font-size:16px">'+fmtC(c)+'</span></div></div><button class="b2btn ghost" onclick="closeStock()">✖</button></div>';
-box+='<div style="height:230px;margin:14px 0"><canvas id="b2cv"></canvas></div>';
-box+='<div class="b2stats">'+[['Market Cap',fmtCap(cap)],['P/E',pe.toFixed(1)],['EPS','$'+eps.toFixed(2)],['Dividend',div?div.toFixed(2)+'%':'—'],['52W High',fmtP(hi)],['52W Low',fmtP(lo)]].map(function(s){return '<div class="b2stat"><b>'+s[1]+'</b><span>'+s[0]+'</span></div>';}).join('')+'</div>';
-box+='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><input id="b2qty" type="number" value="1" min="1" style="width:80px;padding:9px;border-radius:9px;border:1px solid #30363d;background:#0d1117;color:#fff"><button class="b2btn" onclick="b2Trade(\''+code+'\',\'buy\')">BUY 🟢</button><button class="b2btn danger" onclick="b2Trade(\''+code+'\',\'sell\')">SELL 🔴</button><button class="b2btn ghost" onclick="b2ToggleWatch(\''+code+'\')">'+(getW().indexOf(code)>=0?'⭐ במעקב':'☆ Watchlist')+'</button></div>';
-box+='<div id="b2est" style="margin-top:10px;color:#8b949e;font-size:13px">Estimated cost: '+fmtP(a.price)+'</div>';
-$('b2sbox').innerHTML=box;modal.classList.remove('hidden');
-var q=$('b2qty');if(q)q.oninput=function(){$('b2est').textContent='Estimated cost: '+fmtP(a.price*(+q.value||0));};
-if(window.Chart&&ga){if(b2Chart)b2Chart.destroy();b2Chart=new Chart($('b2cv').getContext('2d'),{type:'line',data:{labels:ga.daily.slice(-30).map(function(_,i){return 'D'+(i+1);}),datasets:[{data:ga.daily.slice(-30),borderColor:a.color,tension:.3,fill:false,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});}};
-window.closeStock=function(){modal.classList.add('hidden');if(b2Chart){b2Chart.destroy();b2Chart=null;}};
-
-/* ===== Views ===== */
-function renderDash(){var pv=portfolioValue(),pc=currentPct(),pl=pv-initialBalance;var hr=new Date().getHours();var g=hr<12?'בוקר טוב':hr<18?'צהריים טובים':'ערב טוב';
-var h='<h2 style="margin-bottom:4px">'+g+' 👋 <span style="color:#00d4aa">'+currentUserName+'</span></h2><p style="color:#8b949e;font-size:13px;margin-bottom:18px">מצב התיק והשווקים עכשיו</p><div class="b2grid">';
-h+='<div class="b2card"><h4>YOUR PORTFOLIO</h4><div class="b2big">'+fmtP(pv)+'</div><div class="'+cls(pl)+'" style="font-weight:700">'+fmtP(pl)+' ('+fmtC(pc)+')</div><div style="margin-top:10px"><button class="b2btn" onclick="b2GoTrade()">💰 סימולטור</button> <button class="b2btn ghost" onclick="b2Nav(\'watch\')">⭐ מעקב</button></div></div>';
-h+='<div class="b2card"><h4>GLOBAL MARKETS</h4>'+GROUPS.countries.assets.slice(0,5).map(function(a){var c=chg(COUNTRY_TRADE_MAP[a.id]||a.id);return '<div class="b2row"><span>'+a.label+'</span><b class="'+cls(c)+'">'+fmtC(c)+'</b></div>';}).join('')+'</div>';
-h+='<div class="b2card"><h4>TOP MOVERS</h4>'+topMovers(3).map(function(m){return '<div class="b2row"><span>'+assets[m].symbol+' '+assets[m].name+'</span><b class="'+cls(chg(m))+'">'+fmtC(chg(m))+'</b></div>';}).join('')+'</div>';
-h+='<div class="b2card"><h4>YOUR WATCHLIST</h4>'+(getW().length?getW().slice(0,6).map(function(c){return '<span class="b2chip" onclick="openStock(\''+c+'\')">'+assets[c].symbol+' '+fmtC(chg(c))+'</span>';}).join(''):'<p style="color:#8b949e;font-size:13px">ריק — הוסף דרך עמוד מניה ⭐</p>')+'</div></div>';
-$('b2main').innerHTML=h;}
-function renderMarkets(){var EXTRA=[['🇨 Canada (TSX)',25400],['🇫🇷 France (CAC 40)',8100],['🇨 China (SSE)',3250],['🇦🇺 Australia (ASX)',8200]];
-var h='<h2 style="margin-bottom:18px">🌍 Global Markets</h2><div class="b2grid">';
-h+=GROUPS.countries.assets.map(function(a){var code=COUNTRY_TRADE_MAP[a.id]||a.id,c=chg(code);return '<div class="b2card"><h4>'+a.label+'</h4><div class="b2big" style="font-size:24px">'+Math.round(a.points*(a.cur/100)).toLocaleString()+'</div><div class="'+cls(c)+'" style="font-weight:700">'+fmtC(c)+'</div><button class="b2btn ghost" style="margin-top:10px" onclick="openStock(\''+code+'\')">צפה בנכס</button></div>';}).join('');
-h+=EXTRA.map(function(e){var c=((hash(e[0])%9)-4)/2;return '<div class="b2card"><h4>'+e[0]+'</h4><div class="b2big" style="font-size:24px">'+e[1].toLocaleString()+'</div><div class="'+cls(c)+'" style="font-weight:700">'+fmtC(c)+'</div></div>';}).join('')+'</div>';
-var gain=Object.keys(assets).sort(function(a,b){return chg(b)-chg(a);});
-h+='<div class="b2grid" style="margin-top:18px"><div class="b2card"><h4>📈 BIGGEST GAINERS</h4>'+gain.slice(0,5).map(function(c){return '<div class="b2row"><span>'+assets[c].symbol+' '+assets[c].name+'</span><b class="b2up">'+fmtC(chg(c))+'</b></div>';}).join('')+'</div><div class="b2card"><h4>📉 BIGGEST LOSERS</h4>'+gain.slice(-5).reverse().map(function(c){return '<div class="b2row"><span>'+assets[c].symbol+' '+assets[c].name+'</span><b class="b2dn">'+fmtC(chg(c))+'</b></div>';}).join('')+'</div></div>';
-$('b2main').innerHTML=h;}
-function renderWatch(){var w=getW();var h='<h2 style="margin-bottom:18px">⭐ Watchlist</h2><div class="b2card">';
-if(!w.length)h+='<p style="color:#8b949e">ריק — פתח עמוד מניה והוסף ⭐</p>';
-w.forEach(function(c){var a=assets[c];if(!a)return;var c2=chg(c);h+='<div class="b2row"><span style="cursor:pointer" onclick="openStock(\''+c+'\')">'+a.symbol+' '+a.name+'</span><span><b style="margin-left:10px">'+fmtP(a.price)+'</b><b class="'+cls(c2)+'">'+fmtC(c2)+'</b> <button class="b2btn ghost" style="padding:4px 10px" onclick="b2ToggleWatch(\''+c+'\')">✖</button></span></div>';});
-h+='</div>';$('b2main').innerHTML=h;}
-var ACAD2=[{t:'LEVEL 1 — Stock Market Basics',items:[['a1','What is a Stock?','מניה = חלק קטן מבעלות על חברה.'],['a2','What is an Index?','מדד = סל מניות המייצג שוק שלם.'],['a3','What is a Dividend?','חלוקת רווחים לבעלי המניות.']]},
-{t:'LEVEL 2 — Understanding Companies',items:[['a4','Revenue','סך ההכנסות ממכירות.'],['a5','Profit','מה שנשאר אחרי ההוצאות.'],['a6','EPS','רווח למניה.'],['a7','P/E','מחיר ÷ רווח למניה.']]},
-{t:'LEVEL 3 — Investing Concepts',items:[['a8','Diversification','פיזור להקטנת סיכון.'],['a9','Risk','כמה אתה מוכן להפסיד.'],['a10','Portfolio','סך הנכסים שלך.'],['a11','DCA','השקעה קבועה בזמנים קבועים.']]}];
-var openAcad=null;
-function acadDone(){return ls('boursa_acad2',[]);}
-window.acadToggle=function(id){openAcad=(openAcad===id)?null:id;renderAcademy();};
-window.acadDone2=function(id){var d=acadDone();if(d.indexOf(id)<0){d.push(id);ss('boursa_acad2',d);xpBonus+=10;saveData();addHistory('system','🎓 אקדמיה 2.0 (+10 XP)');showToast('✅ +10 XP');}renderAcademy();};
-function renderAcademy(){var done=acadDone();var h='<h2 style="margin-bottom:18px">🎓 BOURSA Academy</h2>';
-ACAD2.forEach(function(L){h+='<div class="b2lv"><h5>'+L.t+'</h5>';L.items.forEach(function(it){var d=done.indexOf(it[0])>=0,o=openAcad===it[0];
-h+='<div class="b2les"><span>'+(d?'✅':'📗')+' '+it[1]+'</span><button class="b2btn ghost" onclick="acadToggle(\''+it[0]+'\')">'+(o?'סגור':'פתח')+'</button></div>';
-if(o)h+='<div style="padding:8px 10px;font-size:13px;color:#cfd6e0;background:rgba(13,17,23,.5);border-radius:8px;margin-bottom:6px">'+it[2]+'<br>'+(d?'<b style="color:#00d4aa">הושלם!</b>':'<button class="b2btn" style="margin-top:8px" onclick="acadDone2(\''+it[0]+'\')">סיימתי ✅ +10 XP</button>')+'</div>';});h+='</div>';});
-$('b2main').innerHTML=h;}
-function ch2Claimed(){return ls('boursa_ch2',[]);}
-var CH2=[['c10k','🚀 $10K Challenge','בנה תיק ראשון',30,'🏆 Beginner Investor',function(){return Object.keys(portfolio).length>=1;}],
-['cglb','🌎 Global Challenge','החזק נכסים מ-5 מדדי מדינות',60,'🌎 Global Investor',function(){var t=['SP500','TA125','DAX','FTSE','NIKKEI','MIB'],n=0;t.forEach(function(c){if(portfolio[c])n++;});return n>=5;}],
-['clrn','🧠 Learning Challenge','השלם 10 שיעורים',50,'🎓 Finance Student',function(){return (lessonsDone.length+acadDone().length)>=10;}]];
-window.ch2Claim=function(id){var cl=ch2Claimed();if(cl.indexOf(id)>=0)return;var c=null;CH2.forEach(function(x){if(x[0]===id)c=x;});if(!c||!c[5]())return;cl.push(id);ss('boursa_ch2',cl);xpBonus+=c[3];saveData();addHistory('system','🔥 אתגר 2.0: '+c[1]+' (+'+c[3]+' XP)');showToast('🎁 +'+c[3]+' XP!');renderChall();};
-function renderChall(){var cl=ch2Claimed();var h='<h2 style="margin-bottom:18px">🔥 Challenges</h2><div class="b2grid">';
-CH2.forEach(function(c){var ok=c[5](),dn=cl.indexOf(c[0])>=0;h+='<div class="b2card"><h4>'+c[1]+'</h4><p style="color:#cfd6e0;font-size:13px;margin-bottom:10px">'+c[2]+'</p><p style="font-size:13px;color:#8b949e">פרס: <b style="color:#00d4aa">+'+c[3]+' XP</b> · '+c[4]+'</p>'+(dn?'<p class="b2up" style="font-weight:700">✅ הושלם</p>':(ok?'<button class="b2btn" onclick="ch2Claim(\''+c[0]+'\')">🎁 קח פרס</button>':'<p style="color:#8b949e;font-size:12px">בתהליך...</p>'))+'</div>';});
-h+='</div>';$('b2main').innerHTML=h;}
-function userPct(em){var d=ls('boursa_data_'+em,null);if(!d)return 0;var bal=d.balance||10000,ini=d.initialBalance||10000,pf=d.portfolio||{},v=bal;Object.keys(pf).forEach(function(k){if(assets[k])v+=assets[k].price*pf[k];});return ((v-ini)/ini)*100;}
-function renderLead(){var u=getUsers(),rows=[];Object.keys(u).forEach(function(em){var d=ls('boursa_data_'+em,null);var a=analyzeHistory((d&&d.history)||[]);rows.push({n:u[em].name||em,xp:a.xp+((d&&d.xpBonus)||0),pct:userPct(em),me:em===(DATA_KEY||'').replace('boursa_data_','')});});
-rows.sort(function(a,b){return b.pct-a.pct;});
-var h='<h2 style="margin-bottom:6px">🏆 GLOBAL LEADERBOARD 🌎</h2><p style="color:#8b949e;font-size:13px;margin-bottom:16px">Weekly Challenge: התחל עם $10,000 · 7 ימים · בנה תיק</p><div class="b2card">';
-rows.forEach(function(r,i){h+='<div class="b2row" style="'+(r.me?'background:rgba(0,212,170,.08);border-radius:8px;padding:8px':'')+'"><span>'+(i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1))+' '+r.n+(r.me?' <b style="color:#00d4aa">(YOU)</b>':'')+'</span><b class="'+cls(r.pct)+'">'+fmtC(r.pct)+'</b></div>';});
-if(!rows.length)h+='<p style="color:#8b949e">אין משתמשים עדיין.</p>';h+='</div>';$('b2main').innerHTML=h;}
-function renderNews(){$('b2main').innerHTML='<h2 style="margin-bottom:18px">📰 Market News</h2><div class="b2card">'+NEWS.map(function(n){return '<div class="b2row"><span>'+n.t+'</span><span style="color:#8b949e;font-size:12px">'+new Date().toLocaleDateString('he-IL')+'</span></div>';}).join('')+'</div>';}
-function renderProfile(){var a=computeAnalysis(),xp=getTotalXp();var tot=lessonsDone.length+acadDone().length;
-var h='<h2 style="margin-bottom:18px">👤 '+currentUserName+'</h2><div class="b2grid">';
-h+='<div class="b2card"><h4>LEVEL</h4><div class="b2big" style="font-size:24px">'+levelForXp(xp)+'</div><p style="color:#8b949e;font-size:13px">'+xp+' XP · 🔥 '+((streak&&streak.count)||0)+' Day Streak</p></div>';
-h+='<div class="b2card"><h4>PORTFOLIO</h4><div class="b2big" style="font-size:24px">'+fmtP(portfolioValue())+'</div><p class="'+cls(currentPct())+'" style="font-weight:700">'+fmtC(currentPct())+'</p></div>';
-h+='<div class="b2card"><h4>ACADEMY</h4><div class="b2big" style="font-size:24px">'+Math.round(tot/17*100)+'%</div><p style="color:#8b949e;font-size:13px">'+tot+' / 17 שיעורים</p></div>';
-h+='<div class="b2card"><h4>ACHIEVEMENTS</h4><div>'+[['🏆 First Trade',(a.buys+a.sells)>=1],['🌎 Global Investor',!!portfolio['SP500']],['📚 Finance Student',lessonsDone.length>=1],['🔥 7 Day Streak',(streak&&streak.count>=7)],['💰 Profit Maker',a.wins>=1]].map(function(t){return '<span class="b2chip" style="'+(t[1]?'border-color:#00d4aa':'opacity:.4')+'">'+t[0]+'</span>';}).join('')+'</div></div></div>';
-$('b2main').innerHTML=h;}
-
-/* ===== חיבורים לאתר הקיים ===== */
-var nav=document.querySelector('nav');
-if(nav){var b=document.createElement('button');b.className='nav-btn btn-primary';b.textContent='🏠 Dashboard';b.onclick=function(){b2Open();};nav.insertBefore(b,nav.firstChild);}
-if(typeof window.startSession==='function'){var os=window.startSession;window.startSession=function(){var r=os.apply(this,arguments);setTimeout(function(){b2Open();},400);return r;};}
-if(typeof window.askAI==='function'){var oa=window.askAI;window.askAI=function(){var r=oa.apply(this,arguments);setTimeout(function(){var w=$('aiMessages');if(w){var d=document.createElement('div');d.className='ai-bub ai';d.innerHTML='💡 <b>דוגמה:</b> כל מושח הוא כלי — P/E הוא תג המחיר על כל שקל רווח.<br><button class="b2btn ghost" style="margin-top:6px" onclick="newQuizQuestion()">🎯 מיני-חידון!</button>';w.appendChild(d);w.scrollTop=w.scrollHeight;}},900);return r;};}
-buildNav();
-console.log('%c🌎 BOURSA 2.0 Upgrade loaded','background:#00a4ef;color:#fff;padding:4px 8px;border-radius:4px');
-})();
-</script>
-<!-- ===================================================== -->
 <!-- 🎭 OR AUTOMATION — מסכי ספקים אמיתיים + כניסה אוטומטית -->
-<!-- להדביק לפני </body>                                    -->
 <!-- ===================================================== -->
 <style>
 #providerOverlay.pv{padding:0!important;backdrop-filter:none!important;background:none!important;align-items:stretch!important;justify-content:stretch!important}
@@ -624,7 +535,6 @@ console.log('%c🌎 BOURSA 2.0 Upgrade loaded','background:#00a4ef;color:#fff;pa
 .pv-page{width:100%;min-height:100vh;overflow:auto;display:flex;flex-direction:column;font-family:'Rubik','Inter',sans-serif}
 .pv-page a{cursor:pointer}
 .pv-close{position:fixed;bottom:16px;left:16px;z-index:9;background:rgba(0,0,0,.4);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:50%;width:42px;height:42px;font-size:18px;cursor:pointer}
-.pv-note{font-size:11px;text-align:center;margin-top:12px;opacity:.7}
 /* Google כהה */
 .pv-google{background:#202124;color:#e8eaed}
 .pv-g-head{display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:14px 24px;border-bottom:1px solid #3c4043;font-size:14px}
@@ -695,231 +605,135 @@ function hash(s){var h=0;for(var i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);
 function toast(m,e){if(window.showToast)showToast(m,e);else alert(m);}
 function ov(html,theme){OV.className='auth-overlay provider-overlay pv';OV.innerHTML='<div class="pv-page '+theme+'">'+html+'</div><button class="pv-close" onclick="pvClose()">✕</button>';OV.classList.remove('hidden');}
 window.pvClose=function(){OV.classList.add('hidden');OV.className='auth-overlay provider-overlay hidden';cur=null;};
+
 /* ===== סיום אוטומטי: יצירה/כניסה + פתיחת השער ===== */
 function pvFinish(email,name,provider,age){
-  email=(email||'').trim().toLowerCase();
-  if(!email||email.indexOf('@')<0){toast('❌ אימייל לא תקין!',true);return false;}
-  var u=users(),ex=u[email];
-  if(!ex){
-    age=parseInt(age,10);
-    if(!age||isNaN(age)){toast('❌ יש להזין גיל!',true);return false;}
-    if(age<14){toast('❌ ההרשמה מגיל 14+ בלבד 🔞',true);return false;}
-    if(age>120){toast('❌ גיל לא תקין!',true);return false;}
-    u[email]={name:name||email.split('@')[0],pass:hash(provider.toLowerCase()+'_demo'),age:age,provider:provider};
-    saveU(u);
-  }else{name=ex.name;}
-  pvClose();
-  if(window.startSession)startSession(email,name,provider);
-  if(window.addHistory)addHistory('system',(ex?'🔑 התחברת דרך ':'🎉 נרשמת דרך ')+provider+'!');
-  return true;
+email=(email||'').trim().toLowerCase();
+if(!email||email.indexOf('@')<0){toast('❌ אימייל לא תקין!',true);return false;}
+var u=users(),ex=u[email];
+if(!ex){
+age=parseInt(age,10);
+if(!age||isNaN(age)){toast('❌ יש להזין גיל!',true);return false;}
+if(age<14){toast('❌ ההרשמה מגיל 14+ בלבד 🔞',true);return false;}
+if(age>120){toast('❌ גיל לא תקין!',true);return false;}
+u[email]={name:name||email.split('@')[0],pass:hash(provider.toLowerCase()+'_demo'),age:age,provider:provider};
+saveU(u);
+}else{name=ex.name;}
+pvClose();
+if(window.startSession)startSession(email,name,provider);
+if(window.addHistory)addHistory('system',(ex?'🔑 התחברת דרך ':'🎉 נרשמת דרך ')+provider+'!');
+return true;
 }
+
 window.openProvider=function(p){cur=p;pendingEmail='';pendingNew=false;render();};
 window.closeProvider=window.pvClose;
 function render(){if(cur==='Google')gList();else if(cur==='Facebook')fLogin(false);else if(cur==='Apple')aStep(1);else mStep(1);}
 
 /* ---------- GOOGLE ---------- */
 function gList(){
-  var saved=Object.entries(users()).filter(function(en){return (en[1].provider||'').toLowerCase()==='google';}).map(function(en){return{n:en[1].name,e:en[0]};});
-  var list=saved.concat(DEMO_GOOGLE.filter(function(d){return !saved.some(function(s){return s.e===d.e;});}));
-  var rows=list.map(function(a){return '<div class="pv-acct" onclick="pvPick(\''+a.e+'\',\''+a.n.replace(/'/g,"\\'")+'\')"><span class="pv-av">'+a.n.charAt(0)+'</span><span class="pv-tx"><div class="nm">'+a.n+'</div><div class="em">'+a.e+'</div></span></div>';}).join('');
-  ov('<div class="pv-g-head"><span>כניסה באמצעות Google</span><span class="pv-g-logo">G</span></div>'+
-  '<div class="pv-g-main"><div class="pv-g-side"><div class="pv-app-ico">📈</div><h1>עליך לבחור חשבון</h1><div class="cont">המשך אל <b>בורסה עולמית</b></div></div>'+
-  '<div class="pv-g-list">'+rows+'<div class="pv-acct" onclick="gOther()"><span class="pv-av">👤</span><span class="pv-tx"><div class="nm">החלפת חשבון</div></span></div></div></div>'+
-  '<div class="pv-g-foot"><span><a>עזרה</a> · <a>פרטיות</a> · <a>תנאים</a></span><span>עברית ▾</span></div>','pv-google');
+var saved=Object.entries(users()).filter(function(en){return (en[1].provider||'').toLowerCase()==='google';}).map(function(en){return{n:en[1].name,e:en[0]};});
+var list=saved.concat(DEMO_GOOGLE.filter(function(d){return !saved.some(function(s){return s.e===d.e;});}));
+var rows=list.map(function(a){return '<div class="pv-acct" onclick="pvPick(\''+a.e+'\',\''+a.n.replace(/'/g,"\\'")+'\')"><span class="pv-av">'+a.n.charAt(0)+'</span><span class="pv-tx"><div class="nm">'+a.n+'</div><div class="em">'+a.e+'</div></span></div>';}).join('');
+ov('<div class="pv-g-head"><span>כניסה באמצעות Google</span><span class="pv-g-logo">G</span></div>'+
+'<div class="pv-g-main"><div class="pv-g-side"><div class="pv-app-ico">📈</div><h1>עליך לבחור חשבון</h1><div class="cont">המשך אל <b>בורסה עולמית</b></div></div>'+
+'<div class="pv-g-list">'+rows+'<div class="pv-acct" onclick="gOther()"><span class="pv-av"></span><span class="pv-tx"><div class="nm">החלפת חשבון</div></span></div></div></div>'+
+'<div class="pv-g-foot"><span><a>עזרה</a> · <a>פרטיות</a> · <a>תנאים</a></span><span>עברית ▾</span></div>','pv-google');
 }
+
 window.pvPick=function(e,n){var u=users();if(!u[e]){u[e]={name:n,pass:hash('google_demo'),age:18,provider:'Google'};saveU(u);}pvClose();if(window.startSession)startSession(e,n,'Google');if(window.addHistory)addHistory('system','🔑 התחברת דרך Google!');};
+
 window.gOther=function(){
-  ov('<div class="pv-g-head"><span>כניסה באמצעות Google</span><span class="pv-g-logo">G</span></div>'+
-  '<div class="pv-g-main"><div class="pv-g-form"><div class="pv-app-ico" style="margin:0 auto 16px">📈</div>'+
-  '<h2 style="font-size:24px;font-weight:400;margin-bottom:6px;color:#fff">התחברות</h2><p style="color:#9aa0a6;font-size:13px;margin-bottom:18px">המשך אל בורסה עולמית</p>'+
-  '<input class="pv-g-in" id="pvEmail" placeholder="אימייל או טלפון">'+
-  '<input class="pv-g-in" id="pvPass" type="password" placeholder="סיסמה">'+
-  '<input class="pv-g-in" id="pvAge" type="number" min="14" max="120" placeholder="🎂 גיל (14+)">'+
-  '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px"><a style="color:#8ab4f8" onclick="gBack()">◀ אחורה</a><button class="pv-g-next" onclick="gSubmit()">הבא</button></div></div></div>'+
-  '<div class="pv-g-foot"><span><a>עזרה</a> · <a>פרטיות</a> · <a>תנאים</a></span><span>עברית ▾</span></div>','pv-google');
+ov('<div class="pv-g-head"><span>כניסה באמצעות Google</span><span class="pv-g-logo">G</span></div>'+
+'<div class="pv-g-main"><div class="pv-g-form"><div class="pv-app-ico" style="margin:0 auto 16px">📈</div>'+
+'<h2 style="font-size:24px;font-weight:400;margin-bottom:6px;color:#fff">התחברות</h2><p style="color:#9aa0a6;font-size:13px;margin-bottom:18px">המשך אל בורסה עולמית</p>'+
+'<input class="pv-g-in" id="pvEmail" placeholder="אימייל או טלפון">'+
+'<input class="pv-g-in" id="pvPass" type="password" placeholder="סיסמה">'+
+'<input class="pv-g-in" id="pvAge" type="number" min="14" max="120" placeholder="🎂 גיל (14+)">'+
+'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px"><a style="color:#8ab4f8" onclick="gBack()">◀ אחורה</a><button class="pv-g-next" onclick="gSubmit()">הבא</button></div></div></div>'+
+'<div class="pv-g-foot"><span><a>עזרה</a> · <a>פרטיות</a> · <a>תנאים</a></span><span>עברית ▾</span></div>','pv-google');
 };
+
 window.gBack=function(){gList();};
 window.gSubmit=function(){var e=gid('pvEmail').value,p=gid('pvPass').value,ag=gid('pvAge').value;if(!p){toast('❌ יש להזין סיסמה!',true);return;}pvFinish(e,null,'Google',ag);};
 
 /* ---------- FACEBOOK ---------- */
 function fLogin(reg){
-  ov('<div class="pv-fb-wrap"><div class="pv-fb-card">'+(reg?
-  '<h2 style="font-size:30px;font-weight:700;margin-bottom:18px">צור חשבון</h2>'+
-  '<input class="pv-fb-in" id="fbName" placeholder="שם מלא">'+
-  '<input class="pv-fb-in" id="fbEmail" placeholder="אימייל">'+
-  '<input class="pv-fb-in" id="fbAge" type="number" min="14" max="120" placeholder="גיל (14+)">'+
-  '<input class="pv-fb-in" id="fbPass" type="password" placeholder="סיסמה">'+
-  '<button class="pv-fb-btn" onclick="fSubmit(true)">הרשמה</button>'+
-  '<a class="pv-fb-link" onclick="fLogin(false)">◀ חזרה להתחברות</a>':
-  '<h2 style="font-size:26px;font-weight:700;margin-bottom:18px">Log into Facebook</h2>'+
-  '<input class="pv-fb-in" id="fbEmail" placeholder="Email or mobile number">'+
-  '<input class="pv-fb-in" id="fbPass" type="password" placeholder="Password">'+
-  '<button class="pv-fb-btn" onclick="fSubmit(false)">Log in</button>'+
-  '<a class="pv-fb-link">Forgot password?</a>'+
-  '<a class="pv-fb-link">Log in with a managed Meta account</a>'+
-  '<button class="pv-fb-create" onclick="fLogin(true)">Create new account</button>'+
-  '<div class="pv-fb-meta">∞ Meta</div>')+'</div></div>','pv-fb');
+ov('<div class="pv-fb-wrap"><div class="pv-fb-card">'+(reg?
+'<h2 style="font-size:30px;font-weight:700;margin-bottom:18px">צור חשבון</h2>'+
+'<input class="pv-fb-in" id="fbName" placeholder="שם מלא">'+
+'<input class="pv-fb-in" id="fbEmail" placeholder="אימייל">'+
+'<input class="pv-fb-in" id="fbAge" type="number" min="14" max="120" placeholder="גיל (14+)">'+
+'<input class="pv-fb-in" id="fbPass" type="password" placeholder="סיסמה">'+
+'<button class="pv-fb-btn" onclick="fSubmit(true)">הרשמה</button>'+
+'<a class="pv-fb-link" onclick="fLogin(false)">◀ חזרה להתחברות</a>':
+'<h2 style="font-size:26px;font-weight:700;margin-bottom:18px">Log into Facebook</h2>'+
+'<input class="pv-fb-in" id="fbEmail" placeholder="Email or mobile number">'+
+'<input class="pv-fb-in" id="fbPass" type="password" placeholder="Password">'+
+'<button class="pv-fb-btn" onclick="fSubmit(false)">Log in</button>'+
+'<a class="pv-fb-link">Forgot password?</a>'+
+'<a class="pv-fb-link">Log in with a managed Meta account</a>'+
+'<button class="pv-fb-create" onclick="fLogin(true)">Create new account</button>'+
+'<div class="pv-fb-meta">∞ Meta</div>')+'</div></div>','pv-fb');
 }
+
 window.fSubmit=function(reg){
-  var em=gid('fbEmail').value,p=gid('fbPass').value;
-  if(reg){var n=gid('fbName').value,ag=gid('fbAge').value;pvFinish(em,n,'Facebook',ag);return;}
-  var u=users()[em.trim().toLowerCase()];
-  if(!u){toast('❌ חשבון לא נמצא — לחץ Create new account',true);return;}
-  if(u.pass!==hash(p)){toast('❌ סיסמה שגויה!',true);return;}
-  pvFinish(em,null,'Facebook',u.age);
+var em=gid('fbEmail').value,p=gid('fbPass').value;
+if(reg){var n=gid('fbName').value,ag=gid('fbAge').value;pvFinish(em,n,'Facebook',ag);return;}
+var u=users()[em.trim().toLowerCase()];
+if(!u){toast('❌ חשבון לא נמצא — לחץ Create new account',true);return;}
+if(u.pass!==hash(p)){toast('❌ סיסמה שגויה!',true);return;}
+pvFinish(em,null,'Facebook',u.age);
 };
 
 /* ---------- APPLE ---------- */
 function aRing(){var d='';for(var i=0;i<28;i++){var a=i/28*Math.PI*2,x=60+Math.cos(a)*46,y=60+Math.sin(a)*46,h=Math.round(i/28*360);d+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+(3+(i%4)*0.8).toFixed(1)+'" fill="hsl('+h+',80%,60%)"/>';}
 return '<div class="pv-ap-ring"><svg viewBox="0 0 120 120">'+d+'</svg><span></span></div>';}
+
 function aStep(st){
-  ov('<div class="pv-ap-head"><span style="display:flex;align-items:center;gap:10px"><span style="font-size:20px"></span><b>Apple Account</b></span><a style="color:#6e6e73;font-size:13px">Sign in</a></div>'+
-  '<div class="pv-ap-main">'+aRing()+
-  (st===1?
-  '<p style="font-size:17px;margin-bottom:22px">Use your Apple Account to sign in to <b>בורסה עולמית</b>.</p>'+
-  '<input class="pv-ap-in" id="apEmail" placeholder="Email or Phone Number">'+
-  '<div class="pv-ap-note">👥 In setting up Sign in with Apple, information about your interactions with Apple and this device may be used by Apple to help prevent fraud. <a>See how your data is managed…</a></div>'+
-  '<div class="pv-ap-btns"><button class="pv-ap-cont" onclick="aNext()">Continue</button><button class="pv-ap-iphone">📱 Sign in with iPhone</button></div>'+
-  '<div style="font-size:12px;color:#6e6e73;margin-top:14px">Requires a device with iOS 17 or later.</div>':
-  '<p style="font-size:17px;margin-bottom:22px">Enter your password for <b>'+pendingEmail+'</b></p>'+
-  '<input class="pv-ap-in" id="apPass" type="password" placeholder="Password">'+
-  (pendingNew?'<input class="pv-ap-in" id="apName" placeholder="שם מלא"><input class="pv-ap-in" id="apAge" type="number" min="14" max="120" placeholder="גיל (14+)">':'')+
-  '<div class="pv-ap-btns"><button class="pv-ap-cont" onclick="aSubmit()">Sign In</button><button class="pv-ap-iphone" onclick="aStep(1)">◀ אחורה</button></div>')+
-  '</div><div class="pv-ap-foot">Copyright © 2026 Apple Inc. All rights reserved. · Privacy Policy · (הדגמה)</div>','pv-ap');
+ov('<div class="pv-ap-head"><span style="display:flex;align-items:center;gap:10px"><span style="font-size:20px"></span><b>Apple Account</b></span><a style="color:#6e6e73;font-size:13px">Sign in</a></div>'+
+'<div class="pv-ap-main">'+aRing()+
+(st===1?
+'<p style="font-size:17px;margin-bottom:22px">Use your Apple Account to sign in to <b>בורסה עולמית</b>.</p>'+
+'<input class="pv-ap-in" id="apEmail" placeholder="Email or Phone Number">'+
+'<div class="pv-ap-note"> In setting up Sign in with Apple, information about your interactions with Apple and this device may be used by Apple to help prevent fraud. <a>See how your data is managed…</a></div>'+
+'<div class="pv-ap-btns"><button class="pv-ap-cont" onclick="aNext()">Continue</button><button class="pv-ap-iphone"> Sign in with iPhone</button></div>'+
+'<div style="font-size:12px;color:#6e6e73;margin-top:14px">Requires a device with iOS 17 or later.</div>':
+'<p style="font-size:17px;margin-bottom:22px">Enter your password for <b>'+pendingEmail+'</b></p>'+
+'<input class="pv-ap-in" id="apPass" type="password" placeholder="Password">'+
+(pendingNew?'<input class="pv-ap-in" id="apName" placeholder="שם מלא"><input class="pv-ap-in" id="apAge" type="number" min="14" max="120" placeholder="גיל (14+)">':'')+
+'<div class="pv-ap-btns"><button class="pv-ap-cont" onclick="aSubmit()">Sign In</button><button class="pv-ap-iphone" onclick="aStep(1)">◀ אחורה</button></div>')+
+'</div><div class="pv-ap-foot">Copyright © 2026 Apple Inc. All rights reserved. · Privacy Policy · (הדגמה)</div>','pv-ap');
 }
+
 window.aNext=function(){var e=gid('apEmail').value.trim().toLowerCase();if(!e||e.indexOf('@')<0){toast('❌ אימייל לא תקין!',true);return;}pendingEmail=e;pendingNew=!users()[e];aStep(2);};
 window.aSubmit=function(){var p=gid('apPass').value;if(!p){toast('❌ יש להזין סיסמה!',true);return;}
-  if(pendingNew){var n=gid('apName').value,ag=gid('apAge').value;pvFinish(pendingEmail,n,'Apple',ag);return;}
-  var u=users()[pendingEmail];if(u.pass!==hash(p)){toast('❌ סיסמה שגויה!',true);return;}
-  pvFinish(pendingEmail,null,'Apple',u.age);};
+if(pendingNew){var n=gid('apName').value,ag=gid('apAge').value;pvFinish(pendingEmail,n,'Apple',ag);return;}
+var u=users()[pendingEmail];if(u.pass!==hash(p)){toast('❌ סיסמה שגויה!',true);return;}
+pvFinish(pendingEmail,null,'Apple',u.age);};
 
 /* ---------- MICROSOFT ---------- */
 function mLogo(){return '<span class="pv-ms-logo"><span class="pv-ms-sq"><i style="background:#f25022"></i><i style="background:#7fba00"></i><i style="background:#00a4ef"></i><i style="background:#ffb900"></i></span>Microsoft</span>';}
+
 function mStep(st){
-  ov('<div class="pv-ms-main"><div class="pv-ms-card">'+mLogo()+
-  (st===1?
-  '<h2 style="font-size:24px;font-weight:600;margin-bottom:20px">התחברות</h2>'+
-  '<input class="pv-ms-in" id="msEmail" placeholder="אימייל, טלפון או Skype">'+
-  '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px"><span class="pv-ms-link" onclick="mNext()">אין לך חשבון? צור אחד!</span><button class="pv-ms-btn" onclick="mNext()">הבא</button></div>':
-  '<h2 style="font-size:24px;font-weight:600;margin-bottom:20px">הזן סיסמה</h2>'+
-  '<input class="pv-ms-in" id="msPass" type="password" placeholder="סיסמה">'+
-  (pendingNew?'<input class="pv-ms-in" id="msName" placeholder="שם מלא"><input class="pv-ms-in" id="msAge" type="number" min="14" max="120" placeholder="גיל (14+)">':'')+
-  '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px"><span class="pv-ms-link" onclick="mStep(1)">◀ אחורה</span><button class="pv-ms-btn" onclick="mSubmit()">התחבר</button></div>')+
-  '</div></div>','pv-ms');
+ov('<div class="pv-ms-main"><div class="pv-ms-card">'+mLogo()+
+(st===1?
+'<h2 style="font-size:24px;font-weight:600;margin-bottom:20px">התחברות</h2>'+
+'<input class="pv-ms-in" id="msEmail" placeholder="אימייל, טלפון או Skype">'+
+'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px"><span class="pv-ms-link" onclick="mNext()">אין לך חשבון? צור אחד!</span><button class="pv-ms-btn" onclick="mNext()">הבא</button></div>':
+'<h2 style="font-size:24px;font-weight:600;margin-bottom:20px">הזן סיסמה</h2>'+
+'<input class="pv-ms-in" id="msPass" type="password" placeholder="סיסמה">'+
+(pendingNew?'<input class="pv-ms-in" id="msName" placeholder="שם מלא"><input class="pv-ms-in" id="msAge" type="number" min="14" max="120" placeholder="גיל (14+)">':'')+
+'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px"><span class="pv-ms-link" onclick="mStep(1)">◀ אחורה</span><button class="pv-ms-btn" onclick="mSubmit()">התחבר</button></div>')+
+'</div></div>','pv-ms');
 }
+
 window.mNext=function(){var e=gid('msEmail').value.trim().toLowerCase();if(!e||e.indexOf('@')<0){toast('❌ אימייל לא תקין!',true);return;}pendingEmail=e;pendingNew=!users()[e];mStep(2);};
 window.mSubmit=function(){var p=gid('msPass').value;if(!p){toast('❌ יש להזין סיסמה!',true);return;}
-  if(pendingNew){var n=gid('msName').value,ag=gid('msAge').value;pvFinish(pendingEmail,n,'Microsoft',ag);return;}
-  var u=users()[pendingEmail];if(u.pass!==hash(p)){toast('❌ סיסמה שגויה!',true);return;}
-  pvFinish(pendingEmail,null,'Microsoft',u.age);};
+if(pendingNew){var n=gid('msName').value,ag=gid('msAge').value;pvFinish(pendingEmail,n,'Microsoft',ag);return;}
+var u=users()[pendingEmail];if(u.pass!==hash(p)){toast('❌ סיסמה שגויה!',true);return;}
+pvFinish(pendingEmail,null,'Microsoft',u.age);};
 
-console.log('%c🎭 OR Automation — מסכי ספקים + כניסה אוטומטית נטענו!','background:#4285f4;color:#fff;padding:4px 8px;border-radius:4px;');
-})();
-</script>
-<!-- ============ 🔧 תיקון: מתיחה + קופסאות ריקות + Watchlist ============ -->
-<style>
-.explain-grid,.features-grid,.growth-grid,.steps-grid,.chart-grid{align-items:start!important}
-.explain-card,.feature-card,.growth-card,.step-card,.chart-card{height:auto!important;min-height:0!important}
-.fx-slide{text-align:center}.fx-slide .ic{font-size:40px}.fx-slide h4{color:#fff;margin:6px 0}
-.fx-opt{display:block;width:100%;margin:5px 0;text-align:right;padding:9px 12px;background:rgba(33,38,45,.6);border:1px solid rgba(48,54,61,.6);border-radius:9px;color:#fff;cursor:pointer;font-family:inherit;font-size:13px}
-.fx-opt:hover{border-color:#00d4aa}
-.fx-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
-.fx-in{flex:1;padding:8px;background:rgba(13,17,23,.8);border:1px solid rgba(48,54,61,.6);border-radius:8px;color:#fff;font-family:inherit;font-size:13px;text-align:right}
-.fx-it{border:1px solid rgba(48,54,61,.6);border-radius:8px;padding:6px 8px;margin-top:5px;font-size:13px;display:flex;justify-content:space-between;gap:8px}
-#wlFab{position:fixed;bottom:28px;left:28px;z-index:2500;background:linear-gradient(135deg,#00d4aa,#00a4ef);color:#071310;border:none;border-radius:50%;width:60px;height:60px;font-size:26px;cursor:pointer;box-shadow:0 10px 36px rgba(0,212,170,.5)}
-#wlPan{position:fixed;inset:0;z-index:2550;background:rgba(5,8,14,.86);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:20px}
-#wlPan.on{display:flex}
-#wlBox{width:min(640px,96vw);max-height:88vh;overflow:auto;background:#161b22;border:1px solid rgba(48,54,61,.6);border-radius:18px;padding:22px}
-#wlBox h3{color:#fff;margin-bottom:6px}
-.wl-sub{color:#8b949e;font-size:13px;margin:14px 0 8px}
-.wl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-.wl-it{display:flex;justify-content:space-between;align-items:center;gap:8px;background:rgba(13,17,23,.6);border:1px solid rgba(48,54,61,.6);border-radius:10px;padding:9px 11px;font-size:13px;color:#fff}
-.wl-it .pr{color:#00d4aa;font-weight:700}
-.wl-star{background:none;border:none;color:#8b949e;font-size:18px;cursor:pointer}
-.wl-star.on{color:#ffd166}
-.wl-empty{color:#8b949e;font-size:13px;padding:8px 0}
-</style>
-<script>
-(function(){
-function $(id){return document.getElementById(id);}
-function ls(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
-function ss(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
-function empty(el){return !el || el.innerText.trim().length<3;}
-var AS=window.assets||{'BTC':{name:'ביטקוין',symbol:'₿',price:76870},'ETH':{name:'איתריום',symbol:'Ξ',price:2450},'AAPL':{name:'אפל',symbol:'🍎',price:272.5},'GOOGL':{name:'גוגל',symbol:'🔍',price:315.2},'TSLA':{name:'טסלה',symbol:'🚗',price:362.4},'MSFT':{name:'מיקרוסופט',symbol:'🪟',price:512.3},'NVDA':{name:'אנבידיה',symbol:'🎮',price:190.4},'META':{name:'מטא',symbol:'👥',price:668.9},'GOLD':{name:'זהב',symbol:'🥇',price:4345},'SP500':{name:'S&P 500',symbol:'🇺🇸',price:7591},'TA125':{name:'TA-125',symbol:'🇮🇱',price:4121},'DAX':{name:'DAX',symbol:'🇩🇪',price:25535}};
-
-/* ---- 1) מצגת מתקדמת ---- */
-var CS=[{i:'🎓',t:'ברוך הבא לקורס!',b:'סודות של סוחרים מקצועיים ב-5 סליידים.'},{i:'📊',t:'תזמון שוק',b:'קנה בפחד, מכור בחמדנות.'},{i:'🕯️',t:'נרות יפניים',b:'ירוק=עלייה, אדום=ירידה.'},{i:'📈',t:'ניתוח טכני',b:'תמיכה והתנגדות.'},{i:'🧠',t:'פסיכולוגיה',b:'משמעת מנצחת רגש.'}];
-window.__cs=0;
-function fillCourse(){var b=$('courseBox');if(!b)return;var s=CS[window.__cs];
-b.innerHTML='<div class="fx-slide"><div class="ic">'+s.i+'</div><h4>'+s.t+'</h4><p>'+s.b+'</p><button class="fx-opt" onclick="csPrev()" '+(window.__cs===0?'disabled':'')+'>◀ הקודם</button><button class="fx-opt" onclick="csNext()">'+(window.__cs===CS.length-1?'✅ סיים (+20 XP)':'הבא ▶')+'</button></div>';}
-window.csPrev=function(){if(window.__cs>0){window.__cs--;fillCourse();}};
-window.csNext=function(){if(window.__cs<CS.length-1){window.__cs++;fillCourse();}else if(window.xpBonus!==undefined){window.xpBonus+=20;if(window.saveData)saveData();if(window.showToast)showToast('🎓 +20 XP');}};
-
-/* ---- 2) מילת היום ---- */
-var WD=[{w:'Bull Market',h:'שוק שוורים',m:'עליות מתמשכות.'},{w:'Bear Market',h:'שוק דובים',m:'ירידות מתמשכות.'},{w:'Volatility',h:'תנודתיות',m:'עוצמת תנודות.'},{w:'Dividend',h:'דיבידנד',m:'חלוקת רווחים.'},{w:'ETF',h:'קרן סל',m:'קרן עוקבת מדד.'},{w:'Liquidity',h:'נזילות',m:'קלות מכירה.'}];
-function fillWord(){var b=$('wordOfDayBox');if(!b)return;var w=WD[new Date().getDate()%WD.length];
-b.innerHTML='<b style="color:#00d4aa;font-size:19px">'+w.w+'</b> = '+w.h+'<br><span style="color:#8b949e">'+w.m+'</span>';}
-
-/* ---- 3) תרחישים ---- */
-var SC=[{t:'📉 ירידה 20%',c:'קנית ב-$100 ועכשיו $80. מה תעשה?',o:[{t:'🔴 מכור מיד',r:'❌ מכירה בפאניקה לרוב שגויה.',x:5},{t:'🟢 קנה עוד',r:'⚠️ רק אם יש סיבה יסודית.',x:10},{t:'⚪ בדוק יסודות',r:'✅ הכי חכם!',x:20}]},{t:'🚀 כולם אומרים "לירח"',c:'מה תעשה?',o:[{t:'🟢 קנה מיד',r:'❌ FOMO קלאסי.',x:5},{t:'⚪ חקור',r:'✅ נכון!',x:20},{t:'🔴 שורט',r:'⚠️ מסוכן!',x:10}]}];
-window.__sc=-1;
-function fillScen(){var b=$('scenariosBox');if(!b)return;
-if(window.__sc<0){b.innerHTML='<button class="fx-opt" onclick="scStart()">🎭 התחל תרחיש</button>';return;}
-var s=SC[window.__sc];b.innerHTML='<b style="color:#fff">'+s.t+'</b><p style="margin:6px 0;color:#cfd6e0">'+s.c+'</p>'+s.o.map(function(o,i){return '<button class="fx-opt" onclick="scAns('+i+')">'+o.t+'</button>';}).join('');}
-window.scStart=function(){window.__sc=Math.floor(Math.random()*SC.length);fillScen();};
-window.scAns=function(i){var o=SC[window.__sc].o[i];if(window.xpBonus!==undefined){window.xpBonus+=o.x;if(window.saveData)saveData();}if(window.showToast)showToast('🎭 '+o.r+' +'+o.x+' XP');window.__sc=-1;fillScen();};
-
-/* ---- 4) נרות יפניים ---- */
-var CD=[{n:'נר ירוק',o:100,c:110,h:115,l:98,e:'עלייה.'},{n:'נר אדום',o:100,c:90,h:105,l:85,e:'ירידה.'},{n:'Doji',o:100,c:100,h:110,l:90,e:'היסוס.'},{n:'Hammer',o:100,c:102,h:103,l:85,e:'סימן חיובי.'}];
-window.__cd=0;
-function fillCandle(){var b=$('candlesBox');if(!b)return;var e=CD[window.__cd];
-b.innerHTML='<b style="color:#fff">'+e.n+'</b><canvas id="fxCv" width="200" height="120" style="background:#0d1117;border-radius:8px;display:block;margin:8px auto"></canvas><p style="color:#8b949e">'+e.e+'</p><button class="fx-opt" onclick="cdPrev()" '+(window.__cd===0?'disabled':'')+'>◀</button><button class="fx-opt" onclick="cdNext()">'+(window.__cd===CD.length-1?'🔄 סיים (+15 XP)':'הבא ▶')+'</button>';
-setTimeout(drawFx,40);}
-function drawFx(){var cv=$('fxCv');if(!cv)return;var x=cv.getContext('2d');x.clearRect(0,0,200,120);var e=CD[window.__cd],col=e.c>=e.o?'#00d4aa':'#ff4757';var mn=Math.min(e.o,e.c,e.h,e.l),mx=Math.max(e.o,e.c,e.h,e.l),r=mx-mn||1,sc=function(v){return 110-((v-mn)/r)*100;};x.strokeStyle=col;x.beginPath();x.moveTo(100,sc(e.h));x.lineTo(100,sc(e.l));x.stroke();x.fillStyle=col;x.fillRect(85,sc(Math.max(e.o,e.c)),30,Math.max(sc(Math.min(e.o,e.c))-sc(Math.max(e.o,e.c)),2));}
-window.cdPrev=function(){if(window.__cd>0){window.__cd--;fillCandle();}};
-window.cdNext=function(){if(window.__cd<CD.length-1){window.__cd++;fillCandle();}else if(window.xpBonus!==undefined){window.xpBonus+=15;if(window.saveData)saveData();if(window.showToast)showToast('📊 +15 XP');}};
-
-/* ---- 5) מילון אישי ---- */
-function dictGet(){return ls('boursa_dict_fx',[]);}
-function fillDict(){var b=$('dictionaryBox');if(!b)return;var d=dictGet();
-b.innerHTML='<div class="fx-row"><input id="fxW" class="fx-in" placeholder="מונח"><input id="fxM" class="fx-in" placeholder="הסבר"><button class="fx-opt" style="width:auto;margin:0" onclick="dictAdd()">➕</button></div>'+d.map(function(w,i){return '<div class="fx-it"><span><b style="color:#00d4aa">'+w.w+'</b>: '+w.m+'</span><button class="wl-star" onclick="dictDel('+i+')">🗑️</button></div>';}).join('')||'<div class="wl-empty">אין מילים עדיין — הוסף למעלה ⬆️</div>';}
-window.dictAdd=function(){var w=($('fxW')||{}).value,m=($('fxM')||{}).value;if(!w||!m){if(window.showToast)showToast('❌ מלא שדות',true);return;}var d=dictGet();d.push({w:w.trim(),m:m.trim()});ss('boursa_dict_fx',d);fillDict();};
-window.dictDel=function(i){var d=dictGet();d.splice(i,1);ss('boursa_dict_fx',d);fillDict();};
-
-/* ---- הפעלת המילוי (רק אם ריק) ---- */
-function fillAll(){
- try{if(empty($('courseBox')))fillCourse();}catch(e){}
- try{if(empty($('wordOfDayBox')))fillWord();}catch(e){}
- try{if(empty($('scenariosBox')))fillScen();}catch(e){}
- try{if(empty($('candlesBox')))fillCandle();}catch(e){}
- try{if(empty($('dictionaryBox')))fillDict();}catch(e){}
-}
-
-/* ---- Watchlist עצמאי ---- */
-function wlGet(){return ls('boursa_watch',[]);}
-function wlSet(a){ss('boursa_watch',a);}
-window.wlToggle=function(code){var a=wlGet();if(a.indexOf(code)<0)a.push(code);else a=a.filter(function(c){return c!==code;});wlSet(a);wlRender();if(window.showToast)showToast(a.indexOf(code)>=0?'⭐ נוסף למעקב':'הוסר מהמעקב');};
-function wlRender(){var box=$('wlList'),grid=$('wlGrid');if(!box||!grid)return;var a=wlGet();
-box.innerHTML=a.length?a.map(function(c){var x=AS[c]||{symbol:c,name:c,price:0};return '<div class="wl-it"><span>'+x.symbol+' '+x.name+'</span><span><b class="pr">$'+(+x.price).toLocaleString()+'</b> <button class="wl-star on" onclick="wlToggle(\''+c+'\')">★</button></span></div>';}).join(''):'<div class="wl-empty">עדיין אין במעקב — הוסף למטה ⬇️</div>';
-grid.innerHTML=Object.keys(AS).map(function(c){var x=AS[c],on=a.indexOf(c)>=0;return '<div class="wl-it"><span>'+x.symbol+' '+x.name+'</span><button class="wl-star '+(on?'on':'')+'" onclick="wlToggle(\''+c+'\')">'+(on?'★':'☆')+'</button></div>';}).join('');}
-window.wlOpen=function(){var p=$('wlPan');if(p){p.classList.add('on');wlRender();}};
-window.wlClose=function(){var p=$('wlPan');if(p)p.classList.remove('on');};
-
-/* ---- הזרקת ה-UI של ה-Watchlist ---- */
-function injectWl(){
- if($('wlFab'))return;
- var fab=document.createElement('button');fab.id='wlFab';fab.textContent='⭐';fab.title='Watchlist';fab.onclick=window.wlOpen;document.body.appendChild(fab);
- var pan=document.createElement('div');pan.id='wlPan';pan.onclick=function(e){if(e.target===pan)wlClose();};
- pan.innerHTML='<div id="wlBox"><h3>⭐ המעקב שלי</h3><p style="color:#8b949e;font-size:13px;margin:0">לחץ ★ כדי להוסיף/להסיר נכס. הנכסים נשמרים במכשיר.</p><div class="wl-sub">האוסף שלך:</div><div id="wlList"></div><div class="wl-sub">הוסף נכסים:</div><div class="wl-grid" id="wlGrid"></div><button class="fx-opt" style="margin-top:14px" onclick="wlClose()">סגור ✖</button></div>';
- document.body.appendChild(pan);
-}
-
-/* ---- אתחול ---- */
-function boot(){try{injectWl();}catch(e){}try{fillAll();}catch(e){}}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){boot();setTimeout(fillAll,900);});
-else{boot();setTimeout(fillAll,900);}
-window.addEventListener('load',function(){setTimeout(function(){try{fillAll();}catch(e){}},1200);});
-console.log('%c🔧 תיקון נטען: מתיחה + קופסאות + Watchlist','background:#ffd166;color:#071310;font-weight:bold;padding:4px 8px;border-radius:4px');
+console.log('%c🎭 OR Automation — מסכי ספקים + כניסה אוטומטית נטענו!','background:#4285f4;color:#fff;padding:4px 8px;border-radius:4px');
 })();
 </script>
 </body>
